@@ -1,0 +1,45 @@
+# Overlay produksi. Selalu dipakai bersama base:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Nilai yang disubstitusi (POSTGRES_PASSWORD, BUILD_ID, *_PORT) dibaca dari .env di
+# root repo — ditulis oleh deploy/setup.sh, bukan dari repo. File itu hanya untuk
+# substitusi compose; rahasia aplikasi tetap di api/.env lewat env_file.
+#
+# JWT_SECRET dan REFLECTION_KEY sengaja TIDAK ada di sini. `environment:` menimpa
+# `env_file:`, jadi mencantumkannya dengan default apa pun akan diam-diam
+# mengenkripsi jurnal siswa dengan kunci yang ada di dalam repo publik.
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD belum diset — jalankan deploy/setup.sh}
+    restart: unless-stopped
+
+  api:
+    environment:
+      DATABASE_URL: postgres://berani:${POSTGRES_PASSWORD:?}@postgres:5432/berani?sslmode=disable
+      # Satu-satunya nilai Access-Control-Allow-Origin, sekaligus basis tautan di
+      # email verifikasi & reset password. Harus persis asal yang dibuka browser —
+      # termasuk skema. www. tidak akan lolos CORS.
+      APP_BASE_URL: https://berani.site
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      # Migrasi jalan sebelum listener dibuka (cmd/server/main.go:27), jadi start
+      # pertama setelah migrasi baru bisa lama.
+      start_period: 40s
+
+  web:
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: https://api.berani.site
+        NEXT_PUBLIC_BUILD_ID: ${BUILD_ID:?BUILD_ID belum diset — jalankan lewat deploy/deploy.sh}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/manifest.json"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

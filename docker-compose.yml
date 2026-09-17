@@ -1,3 +1,9 @@
+# Dipatok eksplisit: default compose diturunkan dari nama direktori, jadi berbeda
+# antara klon lokal (berani.id → "beraniid") dan server (/opt/berani → "berani").
+# Nama itu jadi prefix nama volume — kalau berubah, `pgdata` menunjuk volume lain
+# dan database terlihat kosong.
+name: berani
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -16,7 +22,8 @@ services:
       retries: 10
 
   api:
-    build: ./api
+    build:
+      context: ./api
     # R2 + SMTP credentials. Copy api/.env.example to api/.env; without it
     # attachments are disabled and emails are logged instead of sent.
     env_file:
@@ -34,9 +41,14 @@ services:
         condition: service_healthy
 
   web:
-    build: ./web
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8080}
+    build:
+      context: ./web
+      # NEXT_PUBLIC_* di-inline saat `next build`, bukan dibaca saat runtime — jadi
+      # ini wajib build arg, bukan `environment:`. Ubah API_PORT dan build ulang;
+      # menyetelnya di environment tidak akan mengubah bundle.
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8080}
+        NEXT_PUBLIC_BUILD_ID: ${BUILD_ID:-dev}
     ports:
       - "${WEB_PORT:-3000}:3000"
     depends_on:

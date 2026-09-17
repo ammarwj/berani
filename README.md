@@ -44,8 +44,10 @@ R2 (`R2_*`) dan SMTP (`SMTP_*`) opsional: tanpa keduanya, lampiran laporan dinon
 Port bentrok? Jalankan dengan override:
 
 ```bash
-WEB_PORT=3100 API_PORT=8081 docker compose up
+WEB_PORT=3100 API_PORT=8081 docker compose up --build
 ```
+
+`--build` di sini bukan opsional: `NEXT_PUBLIC_API_URL` di-inline ke bundle saat `next build` lewat build arg, jadi mengubah `API_PORT` tanpa build ulang akan membuat browser tetap menembak port lama.
 
 ### Development terpisah
 
@@ -63,7 +65,34 @@ Migration berjalan otomatis saat api start (`api/migrations/*.sql`).
 docker compose exec -T postgres psql -U berani -d berani < api/seed/users.sql
 ```
 
-Siswa/guru/admin, password `berani123`.
+Siswa/guru/admin, password `berani123`. **Jangan pernah dijalankan di produksi** — passwordnya publik.
+
+## Deploy ke VPS
+
+Domain: `berani.my.id` (web) dan `api.berani.my.id` (API), di belakang nginx host. Port loopback: web 3004, API 8004, Postgres 5434.
+
+### Pertama kali
+
+```bash
+git clone git@github.com:ammarwj/berani.git /opt/berani
+cd /opt/berani && sudo bash deploy/setup.sh --email=kamu@contoh.id
+```
+
+`setup.sh` membuat `POSTGRES_PASSWORD`, `JWT_SECRET`, dan `REFLECTION_KEY`, menulis `api/.env` mode 600, menyalakan stack, memasang vhost nginx, lalu meminta sertifikat lewat certbot. Semua pemeriksaan berjalan sebelum rahasia ditulis, dan script **menolak jalan kalau `api/.env` sudah ada**.
+
+Setelahnya: isi `SMTP_*` di `api/.env` (tanpa itu tidak ada yang bisa verifikasi email atau reset password), lalu `bash deploy/deploy.sh --force`.
+
+### Update
+
+```bash
+cd /opt/berani && bash deploy/deploy.sh
+```
+
+Pull dari `main`, keluar tanpa melakukan apa pun kalau tidak ada commit baru, dan hanya membangun ulang service yang berkasnya berubah. Build dijalankan sebelum container lama disentuh, jadi error kompilasi tidak menjatuhkan situs; deploy yang gagal sehat dikembalikan otomatis. `--force` untuk deploy ulang setelah mengubah konfigurasi saja.
+
+### Backup
+
+⚠️ `REFLECTION_KEY` di `api/.env` **tidak bisa dibuat ulang**, dan dump database tanpa kunci itu tidak ada gunanya — jurnal refleksi tidak akan bisa didekripsi. Simpan keduanya bersama, di luar server.
 
 ## Status Implementasi
 

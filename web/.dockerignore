@@ -1,0 +1,26 @@
+# node_modules host WAJIB dikecualikan: binary native-nya darwin/arm64 dan akan
+# menimpa hasil `bun install` di dalam image Alpine. Ini bug laten, bukan sekadar
+# build lambat.
+node_modules
+.next
+out
+build
+coverage
+
+.git
+.gitignore
+
+# Nilai NEXT_PUBLIC_* datang dari build arg (lihat Dockerfile), bukan dari file env
+# yang ikut tersalin. Membawa .env ke dalam image justru menimpa arg itu diam-diam.
+.env
+.env.*
+!.env.example
+
+*.log
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+*.tsbuildinfo
+
+AGENTS.md
+CLAUDE.md

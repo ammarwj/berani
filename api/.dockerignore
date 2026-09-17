@@ -1,3 +1,8 @@
 .env
 *.log
 tmp/
+.git
+
+# Fixture akun demo dengan password publik (berani123). Tidak pernah dijalankan
+# otomatis, tapi tidak ada alasan menaruhnya di image produksi.
+seed/

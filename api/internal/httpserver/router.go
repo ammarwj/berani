@@ -36,8 +36,17 @@ func NewRouter(d Deps) http.Handler {
 	requireAdmin := middleware.RequireRole("guru_admin", "super_admin")
 
 	// PRD §8.2: rate limit auth and report endpoints against abuse.
-	authLimit := middleware.RateLimit(10, time.Minute)
-	reportLimit := middleware.RateLimit(5, 10*time.Minute)
+	//
+	// Di produksi API ada di belakang nginx, jadi setiap request tiba dari IP
+	// gateway bridge Docker yang sama dan clientIP() runtuh jadi satu kunci untuk
+	// seluruh internet (middleware/ratelimit.go:59-61 sengaja mengabaikan
+	// X-Forwarded-For karena header itu dikendalikan penyerang). Angka di sini
+	// karenanya rem lonjakan seluruh instance, bukan kebijakan per pengguna —
+	// batas per-IP ditegakkan nginx lewat zone berani_auth / berani_report di
+	// deploy/nginx/berani-http.conf. Angka per-pengguna di sini akan mengunci
+	// siswa kedua yang login di menit yang sama.
+	authLimit := middleware.RateLimit(600, time.Minute)
+	reportLimit := middleware.RateLimit(300, 10*time.Minute)
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
