@@ -9,8 +9,8 @@
 # Setup pertama kali: deploy/setup.sh
 set -euo pipefail
 
-WEB_DOMAIN="berani.my.id"
-API_DOMAIN="api.berani.my.id"
+WEB_DOMAIN="berani.site"
+API_DOMAIN="api.berani.site"
 BRANCH="main"
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

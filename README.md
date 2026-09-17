@@ -69,7 +69,7 @@ Siswa/guru/admin, password `berani123`. **Jangan pernah dijalankan di produksi**
 
 ## Deploy ke VPS
 
-Domain: `berani.my.id` (web) dan `api.berani.my.id` (API), di belakang nginx host. Port loopback: web 3004, API 8004, Postgres 5434.
+Domain: `berani.site` (web) dan `api.berani.site` (API), di belakang nginx host. Port loopback: web 3004, API 8004, Postgres 5434.
 
 ### Pertama kali
 
