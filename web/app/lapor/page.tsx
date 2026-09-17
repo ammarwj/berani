@@ -364,8 +364,9 @@ export default function LaporPage() {
                 className={inputClass}
               >
                 <option value="tidak_mendesak">Tidak mendesak</option>
-                <option value="mendesak">
-                  Mendesak — ada yang dalam bahaya sekarang
+                <option value="mendesak">Mendesak</option>
+                <option value="sangat_mendesak">
+                  Sangat mendesak — ada yang dalam bahaya sekarang
                 </option>
               </select>
             </Field>

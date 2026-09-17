@@ -95,7 +95,7 @@ Fitur inti untuk melaporkan kejadian bullying, dengan opsi anonim.
 - **Toggle "Kirim sebagai Anonim"**:
   - Jika aktif → data pelapor (user_id) **tidak disimpan/tidak ditautkan** ke laporan
   - Jika nonaktif → laporan tertaut ke akun pelapor untuk keperluan tindak lanjut
-- Kategori tingkat urgensi (mendesak/tidak mendesak)
+- Kategori tingkat urgensi (sangat mendesak/mendesak/tidak mendesak)
 - Nomor tiket laporan agar pengguna anonim tetap bisa memantau status tanpa login ulang menautkan identitas
 - Notifikasi status laporan (Diterima → Diproses → Ditindaklanjuti → Selesai)
 - Dashboard admin untuk melihat, mengelola, dan merespons laporan

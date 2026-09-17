@@ -88,6 +88,7 @@ export default function AdminPage() {
           aria-label="Filter urgensi"
         >
           <option value="">Semua urgensi</option>
+          <option value="sangat_mendesak">Sangat mendesak</option>
           <option value="mendesak">Mendesak</option>
           <option value="tidak_mendesak">Tidak mendesak</option>
         </select>

@@ -221,11 +221,20 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export function UrgencyBadge({ urgency }: { urgency: string }) {
-  if (urgency !== "mendesak") return null;
-  // danger-rose hanya untuk eskalasi mendesak — lihat DESIGN.md.
-  return (
-    <span className="t-label-sm uppercase px-2.5 py-1 rounded-full bg-danger-subtle text-danger-rose">
-      mendesak
-    </span>
-  );
+  // danger-rose hanya untuk eskalasi mendesak/sangat mendesak — lihat DESIGN.md.
+  if (urgency === "sangat_mendesak") {
+    return (
+      <span className="t-label-sm uppercase px-2.5 py-1 rounded-full bg-danger-rose text-white">
+        sangat mendesak
+      </span>
+    );
+  }
+  if (urgency === "mendesak") {
+    return (
+      <span className="t-label-sm uppercase px-2.5 py-1 rounded-full bg-danger-subtle text-danger-rose">
+        mendesak
+      </span>
+    );
+  }
+  return null;
 }

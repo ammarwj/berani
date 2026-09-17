@@ -58,6 +58,9 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		`INSERT INTO reflections (user_id, mood, content_encrypted, prompt) VALUES ($1, $2, $3, $4)`,
 		userID, in.Mood, stored, in.Prompt,
 	); err != nil {
+		// Isi jurnal tidak boleh ikut ter-log; user id dan pesan DB sudah cukup
+		// untuk membedakan FK gagal, constraint mood, atau koneksi putus.
+		log.Printf("insert reflection (user %s): %v", userID, err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}

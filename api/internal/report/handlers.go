@@ -65,7 +65,7 @@ func (h *Handler) Submit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "jenis dan deskripsi laporan wajib diisi", http.StatusBadRequest)
 		return
 	}
-	if s.Urgency != "mendesak" {
+	if s.Urgency != "mendesak" && s.Urgency != "sangat_mendesak" {
 		s.Urgency = "tidak_mendesak"
 	}
 
@@ -253,7 +253,11 @@ func (h *Handler) AdminList(w http.ResponseWriter, r *http.Request) {
 		JOIN report_tickets t ON t.report_id = r.id
 		LEFT JOIN users u ON u.id = r.user_id
 		WHERE ($1 = '' OR r.status = $1) AND ($2 = '' OR r.urgency = $2)
-		ORDER BY CASE WHEN r.urgency = 'mendesak' THEN 0 ELSE 1 END, r.created_at DESC`,
+		ORDER BY CASE r.urgency
+			WHEN 'sangat_mendesak' THEN 0
+			WHEN 'mendesak' THEN 1
+			ELSE 2
+		END, r.created_at DESC`,
 		status, urgency)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
