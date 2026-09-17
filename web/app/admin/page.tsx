@@ -2,9 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { api, isAdmin } from "@/lib/api";
-import { PageHeader, Card, Empty, Alert, StatusBadge, UrgencyBadge, inputClass } from "@/components/ui";
-
+import { api, isAdmin, isSuperAdmin } from "@/lib/api";
+import {
+  PageHeader,
+  Card,
+  Empty,
+  Alert,
+  StatusBadge,
+  UrgencyBadge,
+  inputClass,
+} from "@/components/ui";
+import Icon from "@/components/Icon";
 
 type Report = {
   id: string;
@@ -21,16 +29,49 @@ type Report = {
 };
 
 const STATUSES = ["", "diterima", "diproses", "ditindaklanjuti", "selesai"];
+const PAGE_SIZE = 10;
+
+function StatTile({
+  icon,
+  value,
+  label,
+  tone,
+}: {
+  icon: string;
+  value: number | null;
+  label: string;
+  tone: "rose" | "amber" | "mint" | "ocean";
+}) {
+  const styles = {
+    rose: "bg-danger-subtle border-danger-rose/30 text-danger-rose",
+    amber: "bg-amber-subtle border-tertiary-container/30 text-tertiary",
+    mint: "bg-mint-subtle border-secondary/30 text-secondary",
+    ocean: "bg-ocean-subtle border-primary-container/30 text-primary",
+  }[tone];
+  return (
+    <div className={`rounded-2xl border p-space-md ${styles}`}>
+      <p className="t-display text-text-primary">{value ?? "—"}</p>
+      <p className="t-body-sm mt-space-xs inline-flex items-center gap-space-xs">
+        <Icon name={icon} className="text-[16px]" />
+        {label}
+      </p>
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
+  const [allReports, setAllReports] = useState<Report[]>([]);
+  const [activeStudents, setActiveStudents] = useState<number | null>(null);
   const [status, setStatus] = useState("");
   const [urgency, setUrgency] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   const load = useCallback(() => {
     setLoading(true);
+    setPage(1);
     const q = new URLSearchParams();
     if (status) q.set("status", status);
     if (urgency) q.set("urgency", urgency);
@@ -43,8 +84,30 @@ export default function AdminPage() {
   useEffect(() => {
     const ok = isAdmin();
     setAllowed(ok);
-    if (ok) load();
+    if (!ok) return;
+    load();
+    // Statistik & "terbaru" butuh totalnya, lepas dari filter status/urgensi di
+    // bawah — jadi fetch terpisah, sekali saat halaman dibuka.
+    api<Report[]>("/admin/reports")
+      .then(setAllReports)
+      .catch(() => {});
+    if (isSuperAdmin()) {
+      api<{ is_active: boolean }[]>("/admin/users?role=siswa")
+        .then((users) =>
+          setActiveStudents(users.filter((u) => u.is_active).length),
+        )
+        .catch(() => {});
+    }
   }, [load]);
+
+  const newCount = allReports.filter((r) => r.status === "diterima").length;
+  const inProgressCount = allReports.filter(
+    (r) => r.status === "diproses" || r.status === "ditindaklanjuti",
+  ).length;
+  const doneCount = allReports.filter((r) => r.status === "selesai").length;
+
+  const totalPages = Math.max(1, Math.ceil(reports.length / PAGE_SIZE));
+  const paged = reports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (allowed === false) {
     return (
@@ -67,6 +130,33 @@ export default function AdminPage() {
         title="Dashboard Laporan"
         subtitle="Laporan mendesak muncul paling atas. Identitas pelapor hanya terlihat di halaman ini — jaga kerahasiaannya."
       />
+
+      <div className="grid grid-cols-2 gap-space-sm mb-space-lg">
+        <StatTile
+          icon="assignment"
+          value={newCount}
+          label="Laporan Baru"
+          tone="rose"
+        />
+        <StatTile
+          icon="hourglass_top"
+          value={inProgressCount}
+          label="Sedang Ditangani"
+          tone="amber"
+        />
+        <StatTile
+          icon="check_circle"
+          value={doneCount}
+          label="Selesai Ditangani"
+          tone="mint"
+        />
+        <StatTile
+          icon="groups"
+          value={activeStudents}
+          label="Siswa Aktif"
+          tone="ocean"
+        />
+      </div>
 
       <div className="flex gap-2 mb-5">
         <select
@@ -100,14 +190,16 @@ export default function AdminPage() {
         <Empty>Tidak ada laporan yang cocok dengan filter ini.</Empty>
       ) : (
         <ul className="flex flex-col gap-3">
-          {reports.map((r) => (
+          {paged.map((r) => (
             <li key={r.id}>
               <Link href={`/admin/${r.id}`} className="block">
                 <Card className="hover:border-primary-container transition">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <UrgencyBadge urgency={r.urgency} />
                     <StatusBadge status={r.status} />
-                    <span className="text-xs text-text-text-muted">{r.category}</span>
+                    <span className="text-xs text-text-text-muted">
+                      {r.category}
+                    </span>
                     {r.is_anonymous && (
                       <span className="text-xs text-text-muted bg-surface-container-low px-2 py-0.5 rounded-full">
                         mode anonim
@@ -117,15 +209,45 @@ export default function AdminPage() {
                   <p className="text-xs text-text-muted mb-1">
                     {/* Laporan anonim lama (sebelum migrasi 0005) memang tidak pernah
                         menyimpan pelapornya — jangan tampilkan seolah datanya hilang. */}
-                    {r.reporter_name || r.reporter_email || "Identitas tidak tersimpan"}
+                    {r.reporter_name ||
+                      r.reporter_email ||
+                      "Identitas tidak tersimpan"}
                   </p>
                   <p className="text-sm line-clamp-2">{r.description}</p>
-                  <p className="text-xs text-text-text-muted mt-1 t-label tracking-wider">{r.ticket_code}</p>
+                  <p className="text-xs text-text-text-muted mt-1 t-label tracking-wider">
+                    {r.ticket_code}
+                  </p>
                 </Card>
               </Link>
             </li>
           ))}
         </ul>
+      )}
+
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between gap-space-sm mt-space-md">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="flex items-center gap-1 t-label-md text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Icon name="arrow_back" className="text-[16px]" />
+            Sebelumnya
+          </button>
+          <span className="t-body-sm text-text-muted">
+            Halaman {page} dari {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="flex items-center gap-1 t-label-md text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Berikutnya
+            <Icon name="arrow_forward" className="text-[16px]" />
+          </button>
+        </div>
       )}
     </main>
   );
