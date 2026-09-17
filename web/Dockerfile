@@ -17,6 +17,10 @@ RUN bun run build
 
 FROM oven/bun:1-alpine
 WORKDIR /app
+# server.js standalone membaca `process.env.HOSTNAME || '0.0.0.0'`, dan Docker
+# mengisi HOSTNAME dengan container ID — jadi tanpa baris ini server hanya bind
+# ke satu alamat container, bukan semua antarmuka.
+ENV HOSTNAME=0.0.0.0
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public

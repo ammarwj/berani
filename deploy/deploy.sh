@@ -16,6 +16,10 @@ BRANCH="main"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_ENV="$REPO_DIR/.env"
 
+# Diisi saat skrip menjalankan ulang dirinya setelah pull (lihat "Mengambil
+# perubahan"), supaya PREV_REV tetap menunjuk commit sebelum pull.
+REEXEC_PREV_REV="${REEXEC_PREV_REV:-}"
+
 FORCE=0
 ALLOW_DIRTY=0
 for arg in "$@"; do
@@ -52,11 +56,26 @@ fi
 # ---------------------------------------------------------------------------
 step "Mengambil perubahan"
 # ---------------------------------------------------------------------------
-PREV_REV="$(git rev-parse HEAD)"
-# --ff-only: jangan pernah membuat merge commit di server. Kalau tidak bisa
-# fast-forward, ada yang salah dan itu urusan manusia.
-git fetch origin "$BRANCH"
-git merge --ff-only "origin/$BRANCH"
+if [ -n "$REEXEC_PREV_REV" ]; then
+  # Lanjutan dari exec di bawah: pull sudah dilakukan oleh proses sebelumnya.
+  PREV_REV="$REEXEC_PREV_REV"
+else
+  PREV_REV="$(git rev-parse HEAD)"
+  # --ff-only: jangan pernah membuat merge commit di server. Kalau tidak bisa
+  # fast-forward, ada yang salah dan itu urusan manusia.
+  git fetch origin "$BRANCH"
+  git merge --ff-only "origin/$BRANCH"
+
+  # Bash sudah membaca WEB_DOMAIN/API_DOMAIN di atas, dari versi skrip SEBELUM
+  # pull — pull barusan mengubah file di disk, bukan variabel di memori proses
+  # ini. Tanpa exec, perubahan pada skrip ini sendiri selalu telat satu deploy,
+  # dan perubahan domain mengunci server: health check menembak domain lama,
+  # gagal, rollback ke commit yang domainnya lama lagi, selamanya.
+  if ! git diff --quiet "$PREV_REV" HEAD -- "${BASH_SOURCE[0]#"$REPO_DIR"/}"; then
+    grn "deploy.sh berubah — menjalankan ulang versi barunya."
+    REEXEC_PREV_REV="$PREV_REV" exec bash "${BASH_SOURCE[0]}" "$@"
+  fi
+fi
 NEW_REV="$(git rev-parse HEAD)"
 
 if [ "$PREV_REV" = "$NEW_REV" ] && [ "$FORCE" -eq 0 ]; then
