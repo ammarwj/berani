@@ -53,14 +53,24 @@ export default function LaporPage() {
     try {
       const { ticket_code } = await api<{ ticket_code: string }>("/reports", {
         method: "POST",
-        body: JSON.stringify({ category, description, location, involved, urgency, anonymous }),
+        body: JSON.stringify({
+          category,
+          description,
+          location,
+          involved,
+          urgency,
+          anonymous,
+        }),
       });
 
       if (file) {
         const form = new FormData();
         form.append("file", file);
-        await api(`/reports/${ticket_code}/attachments`, { method: "POST", body: form }).catch(
-          () => setAttachNote("Laporan terkirim, tapi lampiran gagal diunggah.")
+        await api(`/reports/${ticket_code}/attachments`, {
+          method: "POST",
+          body: form,
+        }).catch(() =>
+          setAttachNote("Laporan terkirim, tapi lampiran gagal diunggah."),
         );
       }
       setTicket(ticket_code);
@@ -78,8 +88,10 @@ export default function LaporPage() {
           <h1 className="t-headline-lg text-text-primary mb-space-md">Lapor</h1>
           <LoginRequired what="mengirim laporan" />
           <p className="t-body-sm text-text-muted mt-space-sm">
-            Akunmu hanya dipakai untuk mencegah laporan palsu. Kalau kamu memilih Anonim,
-            identitasmu tidak disimpan bersama laporan.
+            Akunmu dipakai untuk mencegah laporan palsu dan agar guru pendamping
+            bisa menindaklanjuti. Kalau kamu memilih Anonim, namamu tidak
+            terlihat siapa pun selain guru pendamping — teman-temanmu tidak akan
+            tahu.
           </p>
         </div>
       </main>
@@ -93,7 +105,9 @@ export default function LaporPage() {
           <span className="w-16 h-16 rounded-full bg-mint-subtle text-secondary grid place-items-center mx-auto">
             <Icon name="check_circle" filled className="text-[32px]" />
           </span>
-          <h1 className="t-headline-lg text-text-primary mt-space-md">Laporan diterima</h1>
+          <h1 className="t-headline-lg text-text-primary mt-space-md">
+            Laporan diterima
+          </h1>
           <p className="t-body text-text-muted mt-space-sm">
             Terima kasih atas keberanianmu. Simpan kode tiket ini untuk memantau
             status laporanmu.
@@ -101,25 +115,36 @@ export default function LaporPage() {
 
           <div className="flex items-center gap-space-sm bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card mt-space-lg text-left">
             <div className="min-w-0 flex-1">
-              <p className="t-label-sm uppercase text-text-muted">Kode tiket rahasia</p>
+              <p className="t-label-sm uppercase text-text-muted">
+                Kode tiket rahasia
+              </p>
               {/* Inter (t-label) supaya 0/O dan 1/l tidak tertukar saat disalin manual. */}
-              <p className="t-label text-xl text-primary select-all tracking-wider">{ticket}</p>
+              <p className="t-label text-xl text-primary select-all tracking-wider">
+                {ticket}
+              </p>
             </div>
             <button
               type="button"
               onClick={() => {
-                navigator.clipboard?.writeText(ticket).then(() => setCopied(true), () => {});
+                navigator.clipboard?.writeText(ticket).then(
+                  () => setCopied(true),
+                  () => {},
+                );
               }}
               className="min-h-12 px-space-md rounded-xl bg-ocean-subtle text-primary t-label-md inline-flex items-center gap-space-xs shrink-0"
             >
-              <Icon name={copied ? "check" : "content_copy"} className="text-[18px]" />
+              <Icon
+                name={copied ? "check" : "content_copy"}
+                className="text-[18px]"
+              />
               {copied ? "Tersalin" : "Salin"}
             </button>
           </div>
 
           {anonymous && (
             <p className="t-body-sm text-text-muted mt-space-sm">
-              Laporan ini anonim — kode tiket adalah satu-satunya cara melacaknya.
+              Laporan ini anonim — namamu tidak terlihat siswa lain, hanya guru
+              pendamping.
             </p>
           )}
           {attachNote && (
@@ -135,7 +160,10 @@ export default function LaporPage() {
             >
               Lacak status laporan
             </Link>
-            <Link href="/" className="t-label-md text-text-muted underline underline-offset-2">
+            <Link
+              href="/"
+              className="t-label-md text-text-muted underline underline-offset-2"
+            >
               Kembali ke beranda
             </Link>
           </div>
@@ -153,7 +181,9 @@ export default function LaporPage() {
           </span>
           <div>
             <div className="flex items-center gap-space-xs flex-wrap">
-              <h1 className="t-headline-sm text-text-primary">Kanal rahasia &amp; aman</h1>
+              <h1 className="t-headline-sm text-text-primary">
+                Kanal rahasia &amp; aman
+              </h1>
               <span className="t-label-sm uppercase px-2 py-0.5 rounded-full bg-support-teal-subtle text-support-teal">
                 Enkripsi
               </span>
@@ -168,51 +198,55 @@ export default function LaporPage() {
         {/* Toggle disembunyikan saat sekolah mematikan lapor anonim — server juga
             menolaknya, jadi menampilkannya hanya menjanjikan yang tak bisa ditepati. */}
         {settings?.anonymous_enabled !== false && (
-        <section className="bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card">
-          <div className="flex items-center gap-space-sm">
-            <span
-              className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${
-                anonymous ? "bg-support-teal-subtle text-support-teal" : "bg-surface-container-low text-text-muted"
-              }`}
-            >
-              <Icon name={anonymous ? "visibility_off" : "visibility"} className="text-[22px]" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="t-label text-text-primary">Mode laporan anonim</p>
-              <p className="t-body-sm text-text-muted">
-                {anonymous
-                  ? "Identitasmu tidak disimpan bersama laporan ini."
-                  : "Namamu terlihat oleh guru pendamping."}
-              </p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={anonymous}
-              aria-label="Kirim sebagai anonim"
-              onClick={() => setAnonymous((v) => !v)}
-              className={`w-13 h-7.5 rounded-full p-0.5 shrink-0 transition-colors ${
-                anonymous ? "bg-support-teal" : "bg-outline-variant"
-              }`}
-            >
+          <section className="bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card">
+            <div className="flex items-center gap-space-sm">
               <span
-                className={`block w-6.5 h-6.5 rounded-full bg-white e-card transition-transform ${
-                  anonymous ? "translate-x-5.5" : ""
+                className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${
+                  anonymous
+                    ? "bg-support-teal-subtle text-support-teal"
+                    : "bg-surface-container-low text-text-muted"
                 }`}
-              />
-            </button>
-          </div>
-
-          {anonymous && (
-            <p className="flex gap-space-xs t-body-sm text-primary bg-ocean-subtle rounded-xl px-3 py-2.5 mt-space-sm">
-              <Icon name="key" className="text-[18px] shrink-0" />
-              <span>
-                Nama &amp; akun tidak tersimpan. Kamu akan menerima <strong>kode tiket rahasia</strong> untuk
-                memantau tindak lanjutnya.
+              >
+                <Icon
+                  name={anonymous ? "visibility_off" : "visibility"}
+                  className="text-[22px]"
+                />
               </span>
-            </p>
-          )}
-        </section>
+              <div className="min-w-0 flex-1">
+                <p className="t-label text-text-primary">Mode laporan anonim</p>
+                <p className="t-body-sm text-text-muted">
+                  {anonymous
+                    ? "Namamu disembunyikan — tidak ada siswa lain yang bisa melihatnya."
+                    : "Laporan dikirim dengan namamu tertera seperti biasa."}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={anonymous}
+                aria-label="Kirim sebagai anonim"
+                onClick={() => setAnonymous((v) => !v)}
+                className={`w-13 h-7.5 rounded-full p-0.5 shrink-0 transition-colors ${
+                  anonymous ? "bg-support-teal" : "bg-outline-variant"
+                }`}
+              >
+                <span
+                  className={`block w-6.5 h-6.5 rounded-full bg-white e-card transition-transform ${
+                    anonymous ? "translate-x-5.5" : ""
+                  }`}
+                />
+              </button>
+            </div>
+
+            {anonymous && (
+              <p className="flex gap-space-xs t-body-sm text-primary bg-ocean-subtle rounded-xl px-3 py-2.5 mt-space-sm">
+                <Icon name="key" className="text-[18px] shrink-0" />
+                <span>
+                  Namamu <strong>tidak terlihat siswa lain</strong>.
+                </span>
+              </p>
+            )}
+          </section>
         )}
 
         <form onSubmit={onSubmit} className="flex flex-col gap-space-md">
@@ -222,17 +256,23 @@ export default function LaporPage() {
               <span className="w-6 h-6 rounded-full bg-primary-container text-white grid place-items-center t-label-sm">
                 1
               </span>
-              <span className="t-label text-text-primary">Pilih bentuk kejadian</span>
+              <span className="t-label text-text-primary">
+                Pilih bentuk kejadian
+              </span>
             </div>
             <div className="grid gap-space-sm">
-              {!settings && <p className="t-body-sm text-text-muted">Memuat pilihan…</p>}
+              {!settings && (
+                <p className="t-body-sm text-text-muted">Memuat pilihan…</p>
+              )}
               {settings?.report_categories.map((c) => {
                 const picked = category === c.value;
                 return (
                   <label
                     key={c.value}
                     className={`flex items-center gap-space-sm rounded-xl border p-3 cursor-pointer transition ${
-                      picked ? "border-primary-container bg-ocean-subtle" : "border-border-subtle"
+                      picked
+                        ? "border-primary-container bg-ocean-subtle"
+                        : "border-border-subtle"
                     }`}
                   >
                     <input
@@ -245,16 +285,28 @@ export default function LaporPage() {
                     />
                     <span
                       className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${
-                        picked ? "bg-primary-container text-white" : "bg-surface-container-low text-text-muted"
+                        picked
+                          ? "bg-primary-container text-white"
+                          : "bg-surface-container-low text-text-muted"
                       }`}
                     >
                       <Icon name={c.icon} className="text-[22px]" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="t-label text-text-primary block">{c.label}</span>
-                      <span className="t-body-sm text-text-muted block">{c.desc}</span>
+                      <span className="t-label text-text-primary block">
+                        {c.label}
+                      </span>
+                      <span className="t-body-sm text-text-muted block">
+                        {c.desc}
+                      </span>
                     </span>
-                    {picked && <Icon name="check_circle" filled className="text-[20px] text-primary-container" />}
+                    {picked && (
+                      <Icon
+                        name="check_circle"
+                        filled
+                        className="text-[20px] text-primary-container"
+                      />
+                    )}
                   </label>
                 );
               })}
@@ -266,10 +318,15 @@ export default function LaporPage() {
               <span className="w-6 h-6 rounded-full bg-primary-container text-white grid place-items-center t-label-sm">
                 2
               </span>
-              <span className="t-label text-text-primary">Ceritakan kejadian</span>
+              <span className="t-label text-text-primary">
+                Ceritakan kejadian
+              </span>
             </div>
 
-            <Field label="Apa yang terjadi?" hint="Sesingkat atau sedetail yang kamu rasa nyaman.">
+            <Field
+              label="Apa yang terjadi?"
+              hint="Sesingkat atau sedetail yang kamu rasa nyaman."
+            >
               <textarea
                 required
                 value={description}
@@ -289,7 +346,10 @@ export default function LaporPage() {
               />
             </Field>
 
-            <Field label="Siapa yang terlibat? (opsional)" hint="Boleh dikosongkan kalau kamu ragu.">
+            <Field
+              label="Siapa yang terlibat? (opsional)"
+              hint="Boleh dikosongkan kalau kamu ragu."
+            >
               <input
                 value={involved}
                 onChange={(e) => setInvolved(e.target.value)}
@@ -298,9 +358,15 @@ export default function LaporPage() {
             </Field>
 
             <Field label="Seberapa mendesak?">
-              <select value={urgency} onChange={(e) => setUrgency(e.target.value)} className={inputClass}>
+              <select
+                value={urgency}
+                onChange={(e) => setUrgency(e.target.value)}
+                className={inputClass}
+              >
                 <option value="tidak_mendesak">Tidak mendesak</option>
-                <option value="mendesak">Mendesak — ada yang dalam bahaya sekarang</option>
+                <option value="mendesak">
+                  Mendesak — ada yang dalam bahaya sekarang
+                </option>
               </select>
             </Field>
           </div>
@@ -311,15 +377,21 @@ export default function LaporPage() {
                 <span className="w-6 h-6 rounded-full bg-primary-container text-white grid place-items-center t-label-sm">
                   3
                 </span>
-                <span className="t-label text-text-primary">Lampirkan bukti</span>
+                <span className="t-label text-text-primary">
+                  Lampirkan bukti
+                </span>
               </div>
-              <span className="t-label-sm uppercase text-text-muted">Opsional</span>
+              <span className="t-label-sm uppercase text-text-muted">
+                Opsional
+              </span>
             </div>
 
             {file ? (
               <div className="flex items-center gap-space-sm rounded-xl bg-surface-container-low p-3">
                 <Icon name="attachment" className="text-[20px] text-primary" />
-                <span className="t-body-sm text-text-primary truncate flex-1">{file.name}</span>
+                <span className="t-body-sm text-text-primary truncate flex-1">
+                  {file.name}
+                </span>
                 <button
                   type="button"
                   onClick={() => setFile(null)}
@@ -340,15 +412,20 @@ export default function LaporPage() {
                 <span className="w-10 h-10 rounded-xl bg-ocean-subtle text-primary-container grid place-items-center">
                   <Icon name="add_photo_alternate" className="text-[22px]" />
                 </span>
-                <span className="t-body text-text-primary">Ketuk untuk unggah tangkapan layar atau foto</span>
-                <span className="t-body-sm text-text-muted">PNG, JPG, WebP atau PDF — maks 10 MB</span>
+                <span className="t-body text-text-primary">
+                  Ketuk untuk unggah tangkapan layar atau foto
+                </span>
+                <span className="t-body-sm text-text-muted">
+                  PNG, JPG, WebP atau PDF — maks 10 MB
+                </span>
               </label>
             )}
           </div>
 
           <p className="flex gap-space-xs t-body-sm text-secondary bg-mint-subtle rounded-xl px-3 py-2.5">
             <Icon name="volunteer_activism" className="text-[18px] shrink-0" />
-            Laporanmu diteruskan ke guru BK dan tim perlindungan anak di sekolahmu.
+            Laporanmu diteruskan ke guru BK dan tim perlindungan anak di
+            sekolahmu.
           </p>
 
           {error && <Alert kind="error">{error}</Alert>}
@@ -361,7 +438,10 @@ export default function LaporPage() {
             {sending ? "Mengirim…" : "Kirim laporan dengan aman"}
           </button>
 
-          <Link href="/lapor/status" className="t-label-md text-primary text-center underline underline-offset-2">
+          <Link
+            href="/lapor/status"
+            className="t-label-md text-primary text-center underline underline-offset-2"
+          >
             Sudah punya kode tiket? Lacak status laporan
           </Link>
         </form>

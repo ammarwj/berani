@@ -15,6 +15,8 @@ type Report = {
   status: string;
   created_at: string;
   is_anonymous: boolean;
+  reporter_name: string;
+  reporter_email: string;
   ticket_code: string;
 };
 
@@ -63,7 +65,7 @@ export default function AdminPage() {
       <PageHeader
         icon="security"
         title="Dashboard Laporan"
-        subtitle="Laporan mendesak muncul paling atas. Pelapor anonim tidak dapat diidentifikasi."
+        subtitle="Laporan mendesak muncul paling atas. Identitas pelapor hanya terlihat di halaman ini — jaga kerahasiaannya."
       />
 
       <div className="flex gap-2 mb-5">
@@ -107,10 +109,15 @@ export default function AdminPage() {
                     <span className="text-xs text-text-text-muted">{r.category}</span>
                     {r.is_anonymous && (
                       <span className="text-xs text-text-muted bg-surface-container-low px-2 py-0.5 rounded-full">
-                        anonim
+                        mode anonim
                       </span>
                     )}
                   </div>
+                  <p className="text-xs text-text-muted mb-1">
+                    {/* Laporan anonim lama (sebelum migrasi 0005) memang tidak pernah
+                        menyimpan pelapornya — jangan tampilkan seolah datanya hilang. */}
+                    {r.reporter_name || r.reporter_email || "Identitas tidak tersimpan"}
+                  </p>
                   <p className="text-sm line-clamp-2">{r.description}</p>
                   <p className="text-xs text-text-text-muted mt-1 t-label tracking-wider">{r.ticket_code}</p>
                 </Card>

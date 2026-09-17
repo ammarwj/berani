@@ -137,10 +137,15 @@ export default function PengaturanPage() {
             />
             Izinkan laporan anonim
           </label>
+          <p className="t-label-md text-text-muted">
+            Mode anonim menyembunyikan nama pelapor dari siswa lain, bukan dari guru
+            pendamping: identitasnya tetap terlihat di dashboard supaya laporannya bisa
+            ditindaklanjuti.
+          </p>
           {!s.anonymous_enabled && (
             <p className="t-label-md text-text-muted">
-              Pilihan anonim hilang dari form lapor dan laporan anonim ditolak server. Laporan anonim
-              yang sudah masuk tetap anonim — identitas pelapornya memang tidak pernah disimpan.
+              Pilihan anonim hilang dari form lapor dan laporan anonim ditolak server. Laporan
+              anonim yang sudah masuk tetap ditandai anonim.
             </p>
           )}
         </Card>

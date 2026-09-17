@@ -188,7 +188,7 @@ export default function Home() {
               <p className="t-body text-text-muted mt-1">
                 Ingin cerita tanpa rasa takut?{" "}
                 {settings?.bk_name ? `${settings.bk_name} siap mendengar` : "Guru BK sekolahmu siap mendengar"}
-                {settings?.anonymous_enabled !== false && ", dan laporanmu bisa dikirim sepenuhnya anonim"}.
+                {settings?.anonymous_enabled !== false && ", dan namamu bisa disembunyikan dari teman-temanmu"}.
               </p>
               {settings?.bk_phone && (
                 <a
@@ -271,7 +271,7 @@ function Splash() {
 
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low t-label-sm text-text-muted">
           <Icon name="lock" filled className="text-[14px] text-support-teal" />
-          Dilindungi enkripsi &amp; jaminan privasi anonim
+          Dilindungi enkripsi &amp; dijaga kerahasiaannya
         </span>
       </div>
     </main>

@@ -46,9 +46,11 @@ type submission struct {
 	Anonymous   bool   `json:"anonymous"`
 }
 
-// Submit creates a report. When Anonymous is true, user_id is left NULL per PRD §6 —
-// the requester must still be authenticated (checked by RequireAuth upstream) to deter spam,
-// but that identity is never written to the reports row.
+// Submit creates a report. Anonymous marks the report as anonim, but user_id is
+// recorded either way: guru pendamping tidak bisa menindaklanjuti laporan —
+// menghubungi wali kelas, memisahkan siswa — tanpa tahu siapa pelapornya.
+// "Anonim" di sini berarti identitas tidak terlihat siapa pun selain guru
+// pendamping, dan copy di form lapor menyatakan itu apa adanya.
 func (h *Handler) Submit(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.CtxUserID).(string)
 
@@ -73,9 +75,9 @@ func (h *Handler) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Kalau lapor anonim dimatikan sekolah, permintaan anonim DITOLAK — jangan
-	// sekali-kali mundur ke mencatat user_id. Siswa yang mengira dirinya anonim
-	// lalu identitasnya tercatat adalah persis kegagalan yang aplikasi ini
-	// ada untuk mencegahnya (PRD §6).
+	// diam-diam diturunkan jadi laporan biasa. Siswa yang mengira laporannya
+	// tidak menampilkan nama, lalu namanya muncul di daftar, adalah persis
+	// kegagalan yang aplikasi ini ada untuk mencegahnya.
 	if s.Anonymous && !cfg.AnonymousEnabled {
 		http.Error(w, "lapor anonim sedang dinonaktifkan sekolah", http.StatusBadRequest)
 		return
@@ -85,16 +87,11 @@ func (h *Handler) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var reportedBy any = userID
-	if s.Anonymous {
-		reportedBy = nil
-	}
-
 	var reportID string
 	err = h.DB.QueryRow(r.Context(),
-		`INSERT INTO reports (user_id, category, description, location, involved, urgency)
-		 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-		reportedBy, s.Category, s.Description, s.Location, s.Involved, s.Urgency,
+		`INSERT INTO reports (user_id, anonymous, category, description, location, involved, urgency)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+		userID, s.Anonymous, s.Category, s.Description, s.Location, s.Involved, s.Urgency,
 	).Scan(&reportID)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -202,13 +199,14 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Mine lists reports the user chose to submit under their identity. Anonymous
-// reports are absent by construction — there is no user_id to match.
+// Mine lists every report the user submitted, anonim atau tidak — keduanya
+// menyimpan user_id. Laporan anonim lama (sebelum 0005) tidak punya user_id
+// dan tetap tidak muncul di sini; kode tiket satu-satunya cara melacaknya.
 func (h *Handler) Mine(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.CtxUserID).(string)
 
 	rows, err := h.DB.Query(r.Context(),
-		`SELECT r.id, r.category, r.status, r.urgency, r.created_at, t.ticket_code
+		`SELECT r.id, r.category, r.status, r.urgency, r.created_at, r.anonymous, t.ticket_code
 		 FROM reports r JOIN report_tickets t ON t.report_id = r.id
 		 WHERE r.user_id = $1 ORDER BY r.created_at DESC`, userID)
 	if err != nil {
@@ -223,12 +221,13 @@ func (h *Handler) Mine(w http.ResponseWriter, r *http.Request) {
 		Status     string    `json:"status"`
 		Urgency    string    `json:"urgency"`
 		CreatedAt  time.Time `json:"created_at"`
+		Anonymous  bool      `json:"anonymous"`
 		TicketCode string    `json:"ticket_code"`
 	}
 	items := []item{}
 	for rows.Next() {
 		var it item
-		if err := rows.Scan(&it.ID, &it.Category, &it.Status, &it.Urgency, &it.CreatedAt, &it.TicketCode); err != nil {
+		if err := rows.Scan(&it.ID, &it.Category, &it.Status, &it.Urgency, &it.CreatedAt, &it.Anonymous, &it.TicketCode); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
@@ -237,16 +236,22 @@ func (h *Handler) Mine(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, items)
 }
 
-// AdminList is role-gated upstream. It never selects user_id, so anonymous
-// submitters stay untraceable even to admins.
+// AdminList is role-gated upstream. Sejak 0005 identitas pelapor ikut terbawa,
+// termasuk untuk laporan anonim: guru pendamping butuh tahu siapa yang melapor
+// untuk bisa menindaklanjutinya. IsAnonymous tetap dikirim supaya UI bisa
+// menandai bahwa siswa itu memilih mode anonim — tanda peringatan kerahasiaan,
+// bukan lagi tanda bahwa identitasnya tidak ada.
 func (h *Handler) AdminList(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	urgency := r.URL.Query().Get("urgency")
 
 	rows, err := h.DB.Query(r.Context(), `
 		SELECT r.id, r.category, r.description, r.location, r.involved, r.urgency,
-		       r.status, r.created_at, r.user_id IS NULL AS is_anonymous, t.ticket_code
-		FROM reports r JOIN report_tickets t ON t.report_id = r.id
+		       r.status, r.created_at, r.anonymous, coalesce(u.name, ''), coalesce(u.email, ''),
+		       t.ticket_code
+		FROM reports r
+		JOIN report_tickets t ON t.report_id = r.id
+		LEFT JOIN users u ON u.id = r.user_id
 		WHERE ($1 = '' OR r.status = $1) AND ($2 = '' OR r.urgency = $2)
 		ORDER BY CASE WHEN r.urgency = 'mendesak' THEN 0 ELSE 1 END, r.created_at DESC`,
 		status, urgency)
@@ -266,13 +271,18 @@ func (h *Handler) AdminList(w http.ResponseWriter, r *http.Request) {
 		Status      string    `json:"status"`
 		CreatedAt   time.Time `json:"created_at"`
 		IsAnonymous bool      `json:"is_anonymous"`
-		TicketCode  string    `json:"ticket_code"`
+		// Kosong untuk laporan anonim lama yang user_id-nya memang tidak pernah
+		// disimpan; UI membedakannya dari anonim baru lewat nilai kosong ini.
+		ReporterName  string `json:"reporter_name"`
+		ReporterEmail string `json:"reporter_email"`
+		TicketCode    string `json:"ticket_code"`
 	}
 	items := []item{}
 	for rows.Next() {
 		var it item
 		if err := rows.Scan(&it.ID, &it.Category, &it.Description, &it.Location, &it.Involved,
-			&it.Urgency, &it.Status, &it.CreatedAt, &it.IsAnonymous, &it.TicketCode); err != nil {
+			&it.Urgency, &it.Status, &it.CreatedAt, &it.IsAnonymous,
+			&it.ReporterName, &it.ReporterEmail, &it.TicketCode); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
@@ -287,15 +297,20 @@ func (h *Handler) AdminDetail(w http.ResponseWriter, r *http.Request) {
 
 	var (
 		category, description, location, involved, urgency, status, ticket string
+		reporterName, reporterEmail                                        string
 		createdAt                                                          time.Time
 		isAnonymous                                                        bool
 	)
 	err := h.DB.QueryRow(r.Context(), `
 		SELECT r.category, r.description, r.location, r.involved, r.urgency, r.status,
-		       r.created_at, r.user_id IS NULL, t.ticket_code
-		FROM reports r JOIN report_tickets t ON t.report_id = r.id
+		       r.created_at, r.anonymous, coalesce(u.name, ''), coalesce(u.email, ''),
+		       t.ticket_code
+		FROM reports r
+		JOIN report_tickets t ON t.report_id = r.id
+		LEFT JOIN users u ON u.id = r.user_id
 		WHERE r.id = $1`, id,
-	).Scan(&category, &description, &location, &involved, &urgency, &status, &createdAt, &isAnonymous, &ticket)
+	).Scan(&category, &description, &location, &involved, &urgency, &status, &createdAt,
+		&isAnonymous, &reporterName, &reporterEmail, &ticket)
 	if err == pgx.ErrNoRows {
 		http.Error(w, "laporan tidak ditemukan", http.StatusNotFound)
 		return
@@ -320,6 +335,7 @@ func (h *Handler) AdminDetail(w http.ResponseWriter, r *http.Request) {
 		"id": id, "category": category, "description": description,
 		"location": location, "involved": involved, "urgency": urgency,
 		"status": status, "created_at": createdAt, "is_anonymous": isAnonymous,
+		"reporter_name": reporterName, "reporter_email": reporterEmail,
 		"ticket_code": ticket, "attachments": attachments, "notes": notes,
 	})
 }

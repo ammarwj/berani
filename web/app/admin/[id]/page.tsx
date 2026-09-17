@@ -4,10 +4,16 @@ import { use, useCallback, useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { api, isAdmin } from "@/lib/api";
 import {
-  PageHeader, Card, Button, Field, Alert, Empty,
-  StatusBadge, UrgencyBadge, inputClass,
+  PageHeader,
+  Card,
+  Button,
+  Field,
+  Alert,
+  Empty,
+  StatusBadge,
+  UrgencyBadge,
+  inputClass,
 } from "@/components/ui";
-
 
 type Detail = {
   id: string;
@@ -19,6 +25,8 @@ type Detail = {
   status: string;
   created_at: string;
   is_anonymous: boolean;
+  reporter_name: string;
+  reporter_email: string;
   ticket_code: string;
   attachments: { filename: string; url: string }[];
   notes: { note: string; status_after: string; created_at: string }[];
@@ -99,10 +107,26 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
         <div className="flex items-center gap-2 flex-wrap mb-3">
           <UrgencyBadge urgency={report.urgency} />
           <StatusBadge status={report.status} />
-          <span className="text-xs text-text-text-muted">{report.category}</span>
+          <span className="text-xs text-text-text-muted">
+            {report.category}
+          </span>
+          {report.is_anonymous && (
+            <span className="text-xs text-text-muted bg-surface-container-low px-2 py-0.5 rounded-full">
+              mode anonim
+            </span>
+          )}
         </div>
 
-        <p className="whitespace-pre-line wrap-break-word">{report.description}</p>
+        {report.is_anonymous && (
+          <p className="text-sm text-text-muted bg-surface-container-low rounded-xl px-3 py-2.5 mb-3">
+            Siswa ini memilih mode anonim: namanya disembunyikan dari siswa
+            lain.
+          </p>
+        )}
+
+        <p className="whitespace-pre-line wrap-break-word">
+          {report.description}
+        </p>
 
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm mt-4 text-text-muted">
           {report.location && (
@@ -118,7 +142,21 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
             </>
           )}
           <dt className="font-medium">Pelapor</dt>
-          <dd>{report.is_anonymous ? "Anonim — identitas tidak disimpan" : "Teridentifikasi"}</dd>
+          <dd>
+            {report.reporter_name || report.reporter_email ? (
+              <>
+                {report.reporter_name || "Tanpa nama"}
+                {report.reporter_email && (
+                  <span className="block text-text-muted">
+                    {report.reporter_email}
+                  </span>
+                )}
+              </>
+            ) : (
+              // Laporan anonim lama: user_id-nya memang tidak pernah tersimpan.
+              "Identitas tidak tersimpan"
+            )}
+          </dd>
           <dt className="font-medium">Tiket</dt>
           <dd className="t-label tracking-wider">{report.ticket_code}</dd>
           <dt className="font-medium">Masuk</dt>
@@ -149,7 +187,9 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
                       {a.filename}
                     </a>
                   ) : (
-                    <span className="text-text-text-muted">{a.filename} (tautan tidak tersedia)</span>
+                    <span className="text-text-text-muted">
+                      {a.filename} (tautan tidak tersedia)
+                    </span>
                   )}
                 </li>
               ))}
@@ -162,7 +202,11 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
         <h2 className="text-sm font-semibold mb-3">Perbarui status</h2>
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <Field label="Status">
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className={inputClass}
+            >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -170,7 +214,10 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
               ))}
             </select>
           </Field>
-          <Field label="Catatan tindak lanjut" hint="Tercatat untuk audit internal sekolah.">
+          <Field
+            label="Catatan tindak lanjut"
+            hint="Tercatat untuk audit internal sekolah."
+          >
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -206,7 +253,9 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
                     })}
                   </span>
                 </div>
-                {n.note && <p className="text-sm whitespace-pre-line">{n.note}</p>}
+                {n.note && (
+                  <p className="text-sm whitespace-pre-line">{n.note}</p>
+                )}
               </Card>
             </li>
           ))}

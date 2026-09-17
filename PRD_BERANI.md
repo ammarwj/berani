@@ -107,17 +107,20 @@ Fitur inti untuk melaporkan kejadian bullying, dengan opsi anonim.
 
 ## 6. Alur Anonimitas Laporan (Penting)
 
-Karena aplikasi mewajibkan login, namun laporan harus bisa anonim, maka:
+> **Revisi (migrasi `0005_reporter_identity.sql`).** Versi awal bagian ini menetapkan bahwa `user_id` tidak disimpan sama sekali untuk laporan anonim — admin pun tidak bisa menelusurinya. Aturan itu **diganti**: guru pendamping tidak bisa menindaklanjuti laporan (menghubungi wali kelas, memisahkan siswa, memanggil orang tua) tanpa tahu siapa pelapornya. "Anonim" sekarang berarti **tersembunyi dari siswa lain, bukan dari guru pendamping**.
+
+Karena aplikasi mewajibkan login, dan laporan tetap harus terasa aman untuk dikirim:
 
 1. Pengguna tetap harus login untuk mengakses fitur Lapor (mencegah spam/bot).
 2. Saat submit laporan dengan toggle **"Anonim" aktif**:
-   - Backend **tidak menyimpan** `user_id` pelapor pada record laporan.
-   - Sistem menghasilkan **kode tiket unik** (random, tidak terkait akun) yang ditampilkan ke pengguna untuk tracking status.
-   - Metadata yang berpotensi mengidentifikasi (IP address, device fingerprint) **tidak disimpan** bersama laporan, atau disimpan terpisah dengan retensi terbatas jika dibutuhkan untuk mitigasi penyalahgunaan.
-3. Saat toggle **nonaktif**, laporan tertaut ke `user_id` untuk mempermudah komunikasi tindak lanjut oleh admin.
-4. Log audit sistem dipisahkan dari data laporan agar tidak membocorkan identitas pelapor anonim secara tidak sengaja.
+   - Backend menyimpan `user_id` pelapor dan menandai `reports.anonymous = TRUE`.
+   - Dashboard guru/admin menampilkan nama & email pelapor, disertai badge **"mode anonim"** sebagai pengingat bahwa siswa itu meminta kerahasiaan.
+   - Sistem tetap menghasilkan **kode tiket unik** untuk tracking status tanpa login.
+   - Metadata yang berpotensi mengidentifikasi (IP address, device fingerprint) **tidak disimpan** bersama laporan.
+3. Saat toggle **nonaktif**, laporan dikirim dengan nama tertera seperti biasa.
+4. Log audit sistem tetap dipisahkan dari data laporan.
 
-> ⚠️ **Catatan desain sistem:** Pemisahan ini harus diimplementasikan di level database (tabel/skema terpisah atau kolom nullable dengan kontrol akses ketat) agar admin tidak dapat menelusuri balik identitas pelapor anonim.
+> ⚠️ **Catatan desain sistem:** karena identitas kini tersimpan, **kejujuran copy di form lapor menjadi kontrolnya**. Siswa harus tahu bahwa guru pendamping melihat namanya *sebelum* menekan kirim. Laporan anonim yang dikirim sebelum migrasi 0005 tidak punya `user_id` dan tidak dapat dipulihkan — UI menampilkannya sebagai "Identitas tidak tersimpan".
 
 ## 7. Autentikasi & Manajemen Akun
 
@@ -181,9 +184,9 @@ Karena aplikasi mewajibkan login, namun laporan harus bisa anonim, maka:
 - `report-service`: submit laporan (mode identitas/anonim), tracking status, dashboard admin
 
 ### 10.2 Prinsip Desain Data
-- Tabel `reports` memiliki kolom `user_id` **nullable** — null jika anonim
+- Tabel `reports` memiliki kolom `user_id` **nullable** — null hanya untuk laporan anonim sebelum migrasi 0005; sesudahnya selalu terisi, dengan `anonymous` sebagai penanda mode (lihat revisi §6)
 - Tabel terpisah `report_tickets` untuk pemetaan kode tiket ↔ laporan (tanpa menyimpan identitas)
-- Tidak ada foreign key yang memungkinkan admin menelusuri balik laporan anonim ke akun pengguna
+- `report_tickets` tidak punya FK balik ke `users`: pelacakan status lewat kode tiket tidak menautkan identitas
 
 ## 11. Metrik Keberhasilan (KPI)
 
@@ -207,7 +210,7 @@ Karena aplikasi mewajibkan login, namun laporan harus bisa anonim, maka:
 
 | Risiko | Mitigasi |
 |---|---|
-| Identitas pelapor anonim bocor secara teknis | Pemisahan skema data ketat + audit keamanan berkala |
+| Identitas pelapor anonim bocor ke sesama siswa | Identitas hanya ada di endpoint `/admin/*` yang role-gated; copy form lapor menyatakan batasnya apa adanya |
 | Penyalahgunaan fitur lapor anonim (laporan palsu/spam) | Rate limiting, validasi konten, moderasi admin |
 | Rendahnya engagement fitur edukasi/latihan | Gamifikasi, konten interaktif, notifikasi pengingat |
 | Kepercayaan pengguna rendah terhadap tindak lanjut laporan | Transparansi status laporan (tracking tiket) |
