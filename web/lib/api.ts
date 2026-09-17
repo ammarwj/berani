@@ -57,8 +57,13 @@ async function request<T>(path: string, options: RequestInit, retry: boolean): P
   if (!res.ok) {
     throw new ApiError(res.status, (await res.text()).trim() || "Terjadi kesalahan.");
   }
-  if (res.status === 204) return undefined as T;
-  return res.json();
+  // 201 dari handler yang hanya memanggil WriteHeader (POST /reflections,
+  // /reports/{ticket}/attachments) berbadan kosong — res.json() melempar
+  // SyntaxError di sana, dan pemanggilnya menampilkannya sebagai kegagalan
+  // padahal datanya sudah tersimpan. Panjang badan yang menentukan, bukan status.
+  const body = await res.text();
+  if (!body) return undefined as T;
+  return JSON.parse(body) as T;
 }
 
 export function api<T>(path: string, options: RequestInit = {}): Promise<T> {

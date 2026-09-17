@@ -32,6 +32,7 @@ export default function RefleksiPage() {
   const [mood, setMood] = useState("baik");
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(() => {
@@ -50,12 +51,14 @@ export default function RefleksiPage() {
     e.preventDefault();
     setSaving(true);
     setError("");
+    setSaved(false);
     try {
       await api("/reflections", {
         method: "POST",
         body: JSON.stringify({ mood, content, prompt }),
       });
       setContent("");
+      setSaved(true);
       load();
     } catch {
       setError("Gagal menyimpan refleksi.");
@@ -145,7 +148,13 @@ export default function RefleksiPage() {
                 required
                 placeholder="Tuliskan apa pun yang kamu rasakan tanpa beban…"
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e) => {
+                  setContent(e.target.value);
+                  // Konfirmasi milik catatan yang barusan disimpan; begitu siswa
+                  // mulai menulis lagi, membiarkannya berarti menandai tulisan
+                  // baru yang belum tersimpan sebagai sudah tersimpan.
+                  setSaved(false);
+                }}
                 className={inputClass}
                 rows={4}
               />
@@ -155,6 +164,12 @@ export default function RefleksiPage() {
             </div>
 
             {error && <Alert kind="error">{error}</Alert>}
+            {saved && (
+              <Alert kind="success">
+                Refleksi tersimpan — terenkripsi dan hanya kamu yang bisa
+                membacanya.
+              </Alert>
+            )}
             <button
               disabled={saving}
               className="min-h-12 w-full rounded-xl bg-primary-container text-white t-label inline-flex items-center justify-center gap-space-xs disabled:opacity-50 transition"
