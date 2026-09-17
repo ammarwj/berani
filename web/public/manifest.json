@@ -1,0 +1,12 @@
+{
+  "name": "BERANI",
+  "short_name": "BERANI",
+  "description": "Belajar, Edukasi, & Aman Terhadap Bullying",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f9ff",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

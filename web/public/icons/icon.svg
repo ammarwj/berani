@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="BERANI">
+  <defs>
+    <linearGradient id="iFlameBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D4ED8" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="iFlameCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+    <linearGradient id="iShieldFrame" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="#FFFFFF" />
+
+  <!-- Perisai saja, tanpa wordmark: ikon maskable dipotong jadi lingkaran, dan
+       teks akan terpotong. Diskalakan ke ~80% agar aman di dalam safe zone. -->
+  <g transform="translate(256, 256) scale(0.79) translate(-256, -233)">
+    <path d="M256 68 L374 124 L374 250 C374 320 324 370 256 398 C188 370 138 320 138 250 L138 124 Z"
+          fill="#F0F7FF"
+          stroke="url(#iShieldFrame)"
+          stroke-width="17"
+          stroke-linejoin="round"
+          stroke-linecap="round" />
+    <path d="M256 140 C230 180 206 230 216 270 C222 292 242 310 256 318 C242 296 242 256 256 228 Z"
+          fill="url(#iFlameBlue)" />
+    <path d="M256 118 C274 162 304 214 294 260 C288 288 268 310 256 318 C268 296 268 244 256 206 Z"
+          fill="url(#iFlameCyan)" />
+    <circle cx="256" cy="264" r="14" fill="#FFFFFF" />
+    <circle cx="256" cy="264" r="8" fill="url(#iFlameCyan)" />
+  </g>
+</svg>

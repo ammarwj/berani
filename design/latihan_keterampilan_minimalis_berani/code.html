@@ -1,0 +1,265 @@
+<!DOCTYPE html><html class="light" lang="id" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><title>BERANI App</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-container": "#e5eeff", "outline-variant": "#c3c6d7", "inverse-primary": "#b4c5ff", "amber-subtle": "#FFFBEB", "support-teal": "#06B6D4", "primary": "#004ac6", "on-secondary": "#ffffff", "error-container": "#ffdad6", "ocean-subtle": "#EFF6FF", "inverse-on-surface": "#eaf1ff", "border-subtle": "#E2E8F0", "primary-container": "#2563eb", "on-tertiary-fixed": "#2a1700", "surface-dim": "#cbdbf5", "on-surface": "#0b1c30", "inverse-surface": "#213145", "on-error-container": "#93000a", "tertiary-container": "#996100", "surface-bright": "#f8f9ff", "secondary-container": "#6cf8bb", "danger-rose": "#EF4444", "surface-tint": "#0053db", "background": "#f8f9ff", "text-muted": "#64748B", "text-primary": "#0F172A", "surface-variant": "#d3e4fe", "ocean-vibrant": "#3B82F6", "ocean-deep": "#1E40AF", "surface-container-highest": "#d3e4fe", "surface-container-high": "#dce9ff", "on-primary": "#ffffff", "surface-container-lowest": "#ffffff", "surface-canvas": "#F8FAFC", "outline": "#737686", "surface-card": "#FFFFFF", "support-teal-subtle": "#ECFEFF", "on-secondary-fixed": "#002113", "error": "#ba1a1a", "on-tertiary-container": "#ffeedd", "on-tertiary": "#ffffff", "tertiary": "#784b00", "on-primary-container": "#eeefff", "on-primary-fixed-variant": "#003ea8", "primary-fixed-dim": "#b4c5ff", "surface-container-low": "#eff4ff", "danger-subtle": "#FEF2F2", "on-error": "#ffffff", "surface": "#f8f9ff", "on-secondary-container": "#00714d", "primary-fixed": "#dbe1ff", "tertiary-fixed": "#ffddb8", "on-background": "#0b1c30", "mint-subtle": "#ECFDF5", "secondary-fixed-dim": "#4edea3", "tertiary-fixed-dim": "#ffb95f", "on-secondary-fixed-variant": "#005236", "on-tertiary-fixed-variant": "#653e00", "on-primary-fixed": "#00174b", "on-surface-variant": "#434655", "secondary": "#006c49", "secondary-fixed": "#6ffbbe" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin": "1rem", "space-lg": "1.5rem", "gutter": "1rem", "space-sm": "0.5rem", "margin-desktop": "2.5rem", "space-2xl": "3rem", "space-md": "1rem", "space-xs": "0.25rem", "gutter-desktop": "1.5rem", "space-xl": "2rem", "margin-tablet": "1.5rem" }, "fontFamily": { "headline-lg-mobile": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "label-sm": ["Inter"], "headline-md": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"], "display-lg-mobile": ["Plus Jakarta Sans"], "title-md": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-lg": ["Inter"], "label-md": ["Inter"] }, "fontSize": { "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "700"}], "body-sm": ["12px", {"lineHeight": "18px", "letterSpacing": "0.015em", "fontWeight": "400"}], "body-lg": ["16px", {"lineHeight": "26px", "letterSpacing": "0em", "fontWeight": "400"}], "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "800"}], "headline-sm": ["18px", {"lineHeight": "26px", "letterSpacing": "-0.005em", "fontWeight": "600"}], "label-sm": ["10px", {"lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600"}], "headline-md": ["22px", {"lineHeight": "30px", "letterSpacing": "-0.01em", "fontWeight": "700"}], "body-md": ["14px", {"lineHeight": "22px", "letterSpacing": "0.01em", "fontWeight": "400"}], "display-lg-mobile": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "800"}], "title-md": ["16px", {"lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "600"}], "headline-lg": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.015em", "fontWeight": "700"}], "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}], "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}] } } } };</script><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:max(env(safe-area-inset-bottom,0px),12px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-primary-container/20 flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_4px_20px_-4px_rgba(37,99,235,0.06)] pt-safe"><div class="h-16 px-margin flex items-center justify-between"><div class="flex items-center gap-space-sm"><img alt="BERANI Emblem Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1X7cHcj6QXXf4UGHEUAg4p5hCaMpRS_hyk86IOHyn0TiE4-ej78ai1j35jsjpeybFgLvpJkqzcM0DuR6CHd6wV_8dTe0J385O1IL0BnNWJEjqkDgySJ0Kf3HOyhT1dKjV_S_Pz5X2EraWjzzTwivVvClxQgOVIIYlovkPWM7_rnSWLCEVG53yW5lq6CBjG9_ImQeCU1kAVj-m3LrmcYi2gJOjkdTWAND0TbifYzJPNNmW1caCKxOQ6y7RA"><span class="font-headline-sm text-headline-sm text-text-primary tracking-tight font-bold">BERANI</span></div><div class="flex items-center justify-end min-w-[36px]"><div class="relative"><img alt="Profil Siswa Rania" class="w-9 h-9 rounded-full object-cover ring-2 ring-primary-container/20 shadow-[0_2px_8px_rgba(37,99,235,0.12)]" src="https://lh3.googleusercontent.com/aida/AEtjO1Vb4Tk_75ifo3CjyqCrvZNVVYVkB5Ui0LS4RbUVpeDI0T9REdlZGuaae2EGpf5cnl_2sSjqEvpDYBWO-VUpi6yALVX7ShBKmeG0l09sfBIMZRxGKKtNnOkNnOp5ukJALuGNY5RSpsk7rRDDNg7hMgklFlasiaL5n-zd4LwPWFnJ55eqb7HSB7zdVcsy0nJJmjnv1tL_fKjmsXeD598Hv52E0HG7JQxnB1QNwrY04oiwM4rRdHAhUtAi1Q"><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-secondary ring-2 ring-surface-container-lowest"></span></div></div></div></header><main class="flex flex-col flex-1 relative w-full pt-16 pb-24 bg-surface"><div class="flex flex-col w-full px-margin pb-space-2xl space-y-space-lg">
+<!-- Header Konten Halaman -->
+<div class="space-y-space-xs">
+<div class="inline-flex items-center gap-space-xs px-space-sm py-1 rounded-full bg-ocean-subtle text-primary-container">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">psychology</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Simulasi Tindakan</span>
+</div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-text-primary tracking-tight">
+      Latihan Tanggap &amp; Berani 💪
+    </h2>
+<p class="font-body-md text-body-md text-text-muted">
+      Latih cara merespons perundungan secara aman, asertif, dan tanpa kekerasan.
+    </p>
+</div>
+<!-- Ringkasan Level & Kemampuan Sederhana -->
+<div class="p-space-md rounded-2xl bg-surface-container-lowest shadow-[0_4px_20px_-4px_rgba(15,23,42,0.05)] space-y-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-support-teal-subtle text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">verified_user</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-text-muted block">Level Kemampuan</span>
+<span class="font-title-md text-title-md text-text-primary">Teman Tangguh</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-label-sm text-label-sm text-text-muted block">Skor Keterampilan</span>
+<span class="font-title-md text-title-md text-primary-container font-bold">85/100</span>
+</div>
+</div>
+<!-- Progress Indicator Minimalis -->
+<div class="space-y-1 pt-1">
+<div class="flex justify-between items-center text-text-muted">
+<span class="font-label-sm text-label-sm">Progres Latihan</span>
+<span class="font-label-sm text-label-sm font-semibold text-text-primary">4 dari 5 Selesai</span>
+</div>
+<div class="h-2 w-full rounded-full bg-surface-container overflow-hidden">
+<div class="h-full rounded-full bg-primary-container transition-all duration-500" style="width: 80%;"></div>
+</div>
+</div>
+</div>
+<!-- Skenario Interaktif Sederhana -->
+<div class="p-space-md rounded-2xl bg-surface-container-lowest shadow-[0_4px_20px_-4px_rgba(15,23,42,0.05)] space-y-space-md">
+<!-- Label Kasus -->
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-semibold text-secondary px-2.5 py-1 rounded-full bg-mint-subtle">
+        Skenario Pilihan Hari Ini • Kasus #3
+      </span>
+<span class="font-label-sm text-label-sm text-text-muted flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 2 Menit
+      </span>
+</div>
+<!-- Cerita Skenario -->
+<div class="p-space-md rounded-xl bg-ocean-subtle">
+<div class="flex gap-space-sm items-start">
+<span class="material-symbols-outlined text-primary-container text-[20px] mt-0.5 shrink-0">chat_bubble</span>
+<p class="font-body-md text-body-md text-text-primary leading-relaxed">
+          Teman sebangkumu diejek di grup chat sekolah dengan foto yang diedit. Apa tindakan asertif terbaik yang bisa kamu ambil?
+        </p>
+</div>
+</div>
+<!-- 3 Pilihan Tindakan Interaktif -->
+<div class="space-y-space-sm" id="scenario-options">
+<!-- Pilihan A -->
+<button class="w-full text-left p-space-sm rounded-xl bg-surface-container-low transition-all duration-200 flex items-start gap-space-sm active:scale-[0.99]" id="btn-option-A" onclick="selectOption('A')" type="button">
+<span class="w-6 h-6 rounded-full bg-surface-container-lowest text-text-muted font-label-md text-label-md flex items-center justify-center shrink-0 mt-0.5" id="badge-A">A</span>
+<span class="font-body-sm text-body-sm text-text-primary flex-1">
+          Diam saja agar tidak ikut jadi sasaran ejekan.
+        </span>
+</button>
+<!-- Pilihan B (Rekomendasi) -->
+<button class="w-full text-left p-space-sm rounded-xl bg-ocean-subtle text-primary-container transition-all duration-200 flex items-start gap-space-sm active:scale-[0.99]" id="btn-option-B" onclick="selectOption('B')" type="button">
+<span class="w-6 h-6 rounded-full bg-primary-container text-on-primary font-label-md text-label-md flex items-center justify-center shrink-0 mt-0.5" id="badge-B">B</span>
+<div class="flex-1 space-y-0.5">
+<span class="font-body-sm text-body-sm text-text-primary font-medium block">
+            Menegur di grup dengan santun tapi tegas bahwa hal tersebut tidak baik, lalu mendukung teman secara privat.
+          </span>
+<span class="font-label-sm text-label-sm text-secondary font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Direkomendasikan
+          </span>
+</div>
+</button>
+<!-- Pilihan C -->
+<button class="w-full text-left p-space-sm rounded-xl bg-surface-container-low transition-all duration-200 flex items-start gap-space-sm active:scale-[0.99]" id="btn-option-C" onclick="selectOption('C')" type="button">
+<span class="w-6 h-6 rounded-full bg-surface-container-lowest text-text-muted font-label-md text-label-md flex items-center justify-center shrink-0 mt-0.5" id="badge-C">C</span>
+<span class="font-body-sm text-body-sm text-text-primary flex-1">
+          Balas membalas ejekan dengan nada kasar di grup.
+        </span>
+</button>
+</div>
+<!-- Kartu Penjelasan Positif (Feedback Edukatif) -->
+<div class="p-space-md rounded-xl bg-mint-subtle space-y-space-xs transition-opacity duration-300" id="feedback-box">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[18px]">lightbulb</span>
+<span class="font-label-md text-label-md font-semibold">Mengapa Sikap Asertif Ini Efektif?</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-primary leading-relaxed">
+        Menegur secara santun menetapkan batasan moral tanpa memicu provokasi baru, sementara pesan privat memberikan ruang aman bagi korban agar merasa didengar dan tidak sendirian.
+      </p>
+</div>
+<!-- Bank Kalimat Cepat (Kutipan Siap Pakai) -->
+<div class="p-space-md rounded-xl bg-surface-container-low space-y-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-muted">Kutipan Asertif Siap Pakai</span>
+<span class="material-symbols-outlined text-text-muted text-[16px]">format_quote</span>
+</div>
+<blockquote class="font-title-md text-title-md text-text-primary italic leading-snug">
+        “Bercanda ada batasnya kalau ada yang tersakiti.”
+      </blockquote>
+<div class="flex justify-end pt-1">
+<button class="inline-flex items-center gap-1 px-space-sm py-1.5 rounded-lg bg-surface-container-lowest text-primary-container text-label-md font-label-md shadow-sm active:scale-95 transition-all" onclick="copyQuote(this)" type="button">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+<span id="copy-btn-text" class="">Salin Kalimat</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Modul Visualisasi Panduan Empati -->
+<div class="p-space-md rounded-2xl bg-surface-container-lowest shadow-[0_4px_20px_-4px_rgba(15,23,42,0.05)] space-y-space-sm">
+<div class="flex items-center justify-between">
+<h3 class="font-title-md text-title-md text-text-primary">Panduan Reaksi Ramah</h3>
+<span class="font-label-sm text-label-sm text-text-muted">Langkah 3T</span>
+</div>
+<div class="grid grid-cols-3 gap-space-xs text-center">
+<div class="p-space-sm rounded-xl bg-surface-container-low space-y-1">
+<div class="w-7 h-7 rounded-full bg-ocean-subtle text-primary-container mx-auto flex items-center justify-center font-bold text-label-md">1</div>
+<span class="font-label-sm text-label-sm font-semibold block text-text-primary">Tenang</span>
+<p class="font-body-sm text-body-sm text-text-muted">Tarik napas, jangan panik.</p>
+</div>
+<div class="p-space-sm rounded-xl bg-surface-container-low space-y-1">
+<div class="w-7 h-7 rounded-full bg-ocean-subtle text-primary-container mx-auto flex items-center justify-center font-bold text-label-md">2</div>
+<span class="font-label-sm text-label-sm font-semibold block text-text-primary">Tegas</span>
+<p class="font-body-sm text-body-sm text-text-muted">Bicara lugas &amp; terukur.</p>
+</div>
+<div class="p-space-sm rounded-xl bg-surface-container-low space-y-1">
+<div class="w-7 h-7 rounded-full bg-mint-subtle text-secondary mx-auto flex items-center justify-center font-bold text-label-md">3</div>
+<span class="font-label-sm text-label-sm font-semibold block text-text-primary">Temani</span>
+<p class="font-body-sm text-body-sm text-text-muted">Dukung teman korban.</p>
+</div>
+</div>
+</div>
+<!-- Daftar Latihan Lainnya (Ringkas & Rapi) -->
+<div class="space-y-space-sm">
+<div class="flex items-center justify-between px-space-xs">
+<h3 class="font-title-md text-title-md text-text-primary">Latihan Lainnya</h3>
+<span class="font-label-sm text-label-sm text-text-muted">Modul Tersedia</span>
+</div>
+<!-- Modul 1: Selesai -->
+<div class="p-space-md rounded-2xl bg-surface-container-lowest shadow-[0_4px_16px_-2px_rgba(15,23,42,0.03)] flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-xl bg-mint-subtle text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<div>
+<h4 class="font-title-md text-title-md text-text-primary">Menolak Tekanan Teman Sebaya</h4>
+<span class="font-label-sm text-label-sm text-secondary font-medium flex items-center gap-1">
+            Selesai Dipelajari
+          </span>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-[22px]" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+</div>
+<!-- Modul 2: Siap Dimulai -->
+<button class="w-full text-left p-space-md rounded-2xl bg-surface-container-lowest shadow-[0_4px_16px_-2px_rgba(15,23,42,0.03)] flex items-center justify-between active:scale-[0.99] transition-all" type="button">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-xl bg-ocean-subtle text-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">group</span>
+</div>
+<div>
+<h4 class="font-title-md text-title-md text-text-primary">Menjadi Bystander yang Bijak</h4>
+<span class="font-label-sm text-label-sm text-text-muted block">3 Menit • Kasus Komunitas</span>
+</div>
+</div>
+<div class="flex items-center gap-1 text-primary-container font-label-md text-label-md font-semibold pl-space-xs">
+<span class="">Mulai</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</div>
+</button>
+</div>
+</div>
+<script>
+  function selectOption(choice) {
+    const feedback = document.getElementById('feedback-box');
+    const badgeA = document.getElementById('badge-A');
+    const badgeB = document.getElementById('badge-B');
+    const badgeC = document.getElementById('badge-C');
+    const btnA = document.getElementById('btn-option-A');
+    const btnB = document.getElementById('btn-option-B');
+    const btnC = document.getElementById('btn-option-C');
+
+    // Reset base classes
+    [btnA, btnB, btnC].forEach(b => {
+      b.className = "w-full text-left p-space-sm rounded-xl bg-surface-container-low transition-all duration-200 flex items-start gap-space-sm active:scale-[0.99]";
+    });
+    [badgeA, badgeB, badgeC].forEach(b => {
+      b.className = "w-6 h-6 rounded-full bg-surface-container-lowest text-text-muted font-label-md text-label-md flex items-center justify-center shrink-0 mt-0.5";
+    });
+
+    if (choice === 'B') {
+      btnB.className = "w-full text-left p-space-sm rounded-xl bg-ocean-subtle text-primary-container transition-all duration-200 flex items-start gap-space-sm active:scale-[0.99]";
+      badgeB.className = "w-6 h-6 rounded-full bg-primary-container text-on-primary font-label-md text-label-md flex items-center justify-center shrink-0 mt-0.5";
+      feedback.className = "p-space-md rounded-xl bg-mint-subtle space-y-space-xs transition-opacity duration-300";
+      feedback.innerHTML = `
+        <div class="flex items-center gap-1.5 text-secondary">
+          <span class="material-symbols-outlined text-[18px]">lightbulb</span>
+          <span class="font-label-md text-label-md font-semibold">Tepat Sekali! Sikap Asertif yang Sehat</span>
+        </div>
+        <p class="font-body-sm text-body-sm text-text-primary leading-relaxed">
+          Menegur secara santun menetapkan batasan moral tanpa memicu provokasi baru, sementara pesan privat memberikan ruang aman bagi korban agar merasa didengar dan tidak sendirian.
+        </p>
+      `;
+    } else if (choice === 'A') {
+      btnA.className = "w-full text-left p-space-sm rounded-xl bg-amber-subtle transition-all duration-200 flex items-start gap-space-sm active:scale-[0.99]";
+      badgeA.className = "w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary-container font-label-md text-label-md flex items-center justify-center shrink-0 mt-0.5";
+      feedback.className = "p-space-md rounded-xl bg-amber-subtle space-y-space-xs transition-opacity duration-300";
+      feedback.innerHTML = `
+        <div class="flex items-center gap-1.5 text-tertiary">
+          <span class="material-symbols-outlined text-[18px]">info</span>
+          <span class="font-label-md text-label-md font-semibold">Perlu Ditinjau Kembali</span>
+        </div>
+        <p class="font-body-sm text-body-sm text-text-primary leading-relaxed">
+          Diam sering kali disalahartikan sebagai persetujuan oleh pelaku, dan membuat teman yang menjadi korban merasa ditinggalkan sendirian.
+        </p>
+      `;
+    } else if (choice === 'C') {
+      btnC.className = "w-full text-left p-space-sm rounded-xl bg-danger-subtle transition-all duration-200 flex items-start gap-space-sm active:scale-[0.99]";
+      badgeC.className = "w-6 h-6 rounded-full bg-danger-rose text-on-error font-label-md text-label-md flex items-center justify-center shrink-0 mt-0.5";
+      feedback.className = "p-space-md rounded-xl bg-danger-subtle space-y-space-xs transition-opacity duration-300";
+      feedback.innerHTML = `
+        <div class="flex items-center gap-1.5 text-danger-rose">
+          <span class="material-symbols-outlined text-[18px]">warning</span>
+          <span class="font-label-md text-label-md font-semibold">Dapat Memperkeruh Situasi</span>
+        </div>
+        <p class="font-body-sm text-body-sm text-text-primary leading-relaxed">
+          Membalas dengan kasar berisiko meningkatkan eskalasi konflik verbal di grup dan bisa membuatmu justru ikut dilaporkan melanggar aturan.
+        </p>
+      `;
+    }
+  }
+
+  function copyQuote(button) {
+    const textToCopy = "Bercanda ada batasnya kalau ada yang tersakiti.";
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      const label = document.getElementById('copy-btn-text');
+      label.textContent = "Tersalin! ✓";
+      button.classList.add('bg-mint-subtle', 'text-secondary');
+      setTimeout(() => {
+        label.textContent = "Salin Kalimat";
+        button.classList.remove('bg-mint-subtle', 'text-secondary');
+      }, 2000);
+    }).catch(() => {
+      const label = document.getElementById('copy-btn-text');
+      label.textContent = "Tersalin! ✓";
+    });
+  }
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_-8px_24px_rgba(15,23,42,0.06)]" data-active-classes="text-primary-container font-semibold"><div class="flex justify-around items-center h-16 max-w-lg mx-auto px-space-xs"><a class="flex flex-col items-center justify-center gap-space-xs min-w-[52px] h-12 text-text-muted hover:text-text-primary transition-colors" data-path="beranda" href="#"><span class="material-symbols-outlined text-[24px]">home</span><span class="font-label-sm text-label-sm tracking-normal">Beranda</span></a><a class="flex flex-col items-center justify-center gap-space-xs min-w-[52px] h-12 text-text-muted hover:text-text-primary transition-colors" data-path="edukasi" href="#"><span class="material-symbols-outlined text-[24px]">menu_book</span><span class="font-label-sm text-label-sm tracking-normal">Edukasi</span></a><a class="flex flex-col items-center justify-center gap-space-xs min-w-[52px] h-12 text-text-muted hover:text-text-primary transition-colors" data-path="refleksi" href="#"><span class="material-symbols-outlined text-[24px]">mood</span><span class="font-label-sm text-label-sm tracking-normal">Refleksi</span></a><a aria-current="page" class="flex flex-col items-center justify-center gap-space-xs min-w-[52px] h-12 transition-colors text-primary-container font-semibold" data-path="latihan" href="#"><span class="material-symbols-outlined text-[24px]">psychology</span><span class="font-label-sm text-label-sm tracking-normal">Latihan</span></a><a class="flex flex-col items-center justify-center gap-space-xs min-w-[52px] h-12 text-text-muted hover:text-text-primary transition-colors" data-path="lapor" href="#"><span class="material-symbols-outlined text-[24px]">shield</span><span class="font-label-sm text-label-sm tracking-normal">Lapor</span></a></div></nav>
+
+</body></html>

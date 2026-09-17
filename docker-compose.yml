@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: berani
+      POSTGRES_PASSWORD: berani
+      POSTGRES_DB: berani
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U berani"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    # R2 + SMTP credentials. Copy api/.env.example to api/.env; without it
+    # attachments are disabled and emails are logged instead of sent.
+    env_file:
+      - ./api/.env
+    environment:
+      PORT: 8080
+      # Overrides the localhost URL in api/.env — inside compose the DB is a service.
+      DATABASE_URL: postgres://berani:berani@postgres:5432/berani?sslmode=disable
+      # CORS origin: must match where the browser actually loads the web app from.
+      APP_BASE_URL: http://localhost:${WEB_PORT:-3000}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build: ./web
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8080}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
