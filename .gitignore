@@ -24,3 +24,8 @@ yarn-error.log*
 .vercel
 *.tsbuildinfo
 web/next-env.d.ts
+
+# Proyek pembungkus TWA (APK). android.keystore menandatangani APK dan TIDAK bisa
+# diganti: hilang = tidak bisa merilis update untuk app yang sudah terpasang,
+# harus terbit ulang dengan package id baru. Backup offline, jangan ke git.
+twa/

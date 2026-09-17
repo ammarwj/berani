@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "id.berani.twa",
+      "sha256_cert_fingerprints": [
+        "C0:AE:0D:4D:B7:18:D0:79:AD:3C:E4:D4:8B:E0:3C:4A:80:DD:6F:CE:AA:8E:AA:FB:37:47:70:42:34:74:AE:17"
+      ]
+    }
+  }
+]
