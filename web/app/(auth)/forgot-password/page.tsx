@@ -59,8 +59,9 @@ export default function ForgotPasswordPage() {
         )}
       </AuthCard>
 
-      <Link href="/login" className="t-label-md text-primary text-center">
-        ← Kembali ke halaman masuk
+      <Link href="/login" className="flex items-center justify-center gap-1 t-label-md text-primary text-center">
+        <Icon name="arrow_back" className="text-[16px]" />
+        Kembali ke halaman masuk
       </Link>
     </AuthShell>
   );

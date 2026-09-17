@@ -14,6 +14,7 @@ import {
   UrgencyBadge,
   inputClass,
 } from "@/components/ui";
+import Icon from "@/components/Icon";
 
 type Detail = {
   id: string;
@@ -96,8 +97,9 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
 
   return (
     <main className="flex-1 max-w-2xl mx-auto w-full px-margin pt-22 pb-28">
-      <Link href="/admin" className="text-sm text-primary underline">
-        ← Semua laporan
+      <Link href="/admin" className="flex items-center gap-1 text-sm text-primary w-fit">
+        <Icon name="arrow_back" className="text-[16px]" />
+        Semua laporan
       </Link>
       <div className="mt-3">
         <PageHeader icon="security" title="Detail Laporan" />
@@ -182,7 +184,7 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
                       href={a.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary underline"
+                      className="text-primary"
                     >
                       {a.filename}
                     </a>

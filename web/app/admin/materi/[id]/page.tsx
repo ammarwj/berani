@@ -103,12 +103,14 @@ export default function MateriEditorPage({ params }: PageProps<"/admin/materi/[i
   return (
     <main className="flex-1 max-w-2xl mx-auto w-full px-margin pt-22 pb-28">
       <div className="flex items-center justify-between gap-space-sm">
-        <Link href="/admin/materi" className="text-sm text-primary underline">
-          ← Semua materi
+        <Link href="/admin/materi" className="flex items-center gap-1 text-sm text-primary">
+          <Icon name="arrow_back" className="text-[16px]" />
+          Semua materi
         </Link>
         {!isNew && (
-          <Link href={`/edukasi/${id}`} className="text-sm text-primary underline">
-            Pratinjau siswa →
+          <Link href={`/edukasi/${id}`} className="flex items-center gap-1 text-sm text-primary">
+            Pratinjau siswa
+            <Icon name="arrow_forward" className="text-[16px]" />
           </Link>
         )}
       </div>
@@ -230,7 +232,7 @@ export default function MateriEditorPage({ params }: PageProps<"/admin/materi/[i
                   <button
                     type="button"
                     onClick={() => patchQ(qi, { options: [...q.options, ""] })}
-                    className="t-label text-primary-container self-start underline underline-offset-2"
+                    className="t-label text-primary-container self-start"
                   >
                     + Tambah pilihan
                   </button>
@@ -239,7 +241,7 @@ export default function MateriEditorPage({ params }: PageProps<"/admin/materi/[i
                 <button
                   type="button"
                   onClick={() => patch({ quiz: m.quiz.filter((_, j) => j !== qi) })}
-                  className="t-label text-text-muted self-start underline underline-offset-2 hover:text-danger-rose"
+                  className="t-label text-text-muted self-start hover:text-danger-rose"
                 >
                   Hapus pertanyaan ini
                 </button>

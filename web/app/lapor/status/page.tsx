@@ -111,8 +111,12 @@ function StatusLookup() {
         </Card>
       )}
 
-      <Link href="/lapor" className="block t-label-md text-primary underline underline-offset-2 text-center mt-space-lg">
-        ← Buat laporan baru
+      <Link
+        href="/lapor"
+        className="flex items-center justify-center gap-1 t-label-md text-primary text-center mt-space-lg"
+      >
+        <Icon name="arrow_back" className="text-[16px]" />
+        Buat laporan baru
       </Link>
       </div>
     </main>

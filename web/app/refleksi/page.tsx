@@ -4,6 +4,17 @@ import { useCallback, useEffect, useState, FormEvent } from "react";
 import { api, isLoggedIn } from "@/lib/api";
 import { Alert, Empty, LoginRequired, inputClass } from "@/components/ui";
 import Icon from "@/components/Icon";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Entry = {
   id: string;
@@ -218,13 +229,28 @@ export default function RefleksiPage() {
                         {e.content}
                       </p>
                     </div>
-                    <button
-                      onClick={() => remove(e.id)}
-                      aria-label="Hapus refleksi"
-                      className="text-text-muted hover:text-danger-rose shrink-0 w-9 h-9 grid place-items-center rounded-lg"
-                    >
-                      <Icon name="close" className="text-[20px]" />
-                    </button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          aria-label="Hapus refleksi"
+                          className="text-text-muted hover:text-danger-rose shrink-0 w-9 h-9 grid place-items-center rounded-lg"
+                        >
+                          <Icon name="close" className="text-[20px]" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Hapus catatan ini?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tindakan ini tidak bisa dibatalkan. Catatan akan hilang permanen.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Batal</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => remove(e.id)}>Hapus</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </li>
               ))}

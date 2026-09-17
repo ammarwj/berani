@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, isLoggedIn } from "@/lib/api";
 import { PageHeader, Card, Button, Alert, Empty } from "@/components/ui";
 import Markdown from "@/components/Markdown";
+import Icon from "@/components/Icon";
 
 
 type Quiz = { question: string; options: string[] };
@@ -78,8 +79,9 @@ export default function ModulePage({ params }: PageProps<"/edukasi/[id]">) {
 
   return (
     <main className="flex-1 max-w-2xl mx-auto w-full px-margin pt-22 pb-28">
-      <Link href="/edukasi" className="text-sm text-primary underline">
-        ← Semua materi
+      <Link href="/edukasi" className="flex items-center gap-1 text-sm text-primary w-fit">
+        <Icon name="arrow_back" className="text-[16px]" />
+        Semua materi
       </Link>
       <div className="mt-3">
         <PageHeader icon="menu_book" title={module.title} subtitle={module.summary} />
@@ -150,8 +152,9 @@ export default function ModulePage({ params }: PageProps<"/edukasi/[id]">) {
           </Button>
         )}
         {score !== null && (
-          <Link href="/edukasi" className="text-primary underline text-sm">
-            Lanjut ke materi lain →
+          <Link href="/edukasi" className="flex items-center gap-1 text-primary text-sm w-fit">
+            Lanjut ke materi lain
+            <Icon name="arrow_forward" className="text-[16px]" />
           </Link>
         )}
       </div>

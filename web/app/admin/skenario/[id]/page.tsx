@@ -106,11 +106,13 @@ export default function SkenarioEditorPage({ params }: PageProps<"/admin/skenari
   return (
     <main className="flex-1 max-w-2xl mx-auto w-full px-margin pt-22 pb-28">
       <div className="flex items-center justify-between gap-space-sm">
-        <Link href="/admin/skenario" className="text-sm text-primary underline">
-          ← Semua skenario
+        <Link href="/admin/skenario" className="flex items-center gap-1 text-sm text-primary">
+          <Icon name="arrow_back" className="text-[16px]" />
+          Semua skenario
         </Link>
-        <Link href="/latihan" className="text-sm text-primary underline">
-          Pratinjau siswa →
+        <Link href="/latihan" className="flex items-center gap-1 text-sm text-primary">
+          Pratinjau siswa
+          <Icon name="arrow_forward" className="text-[16px]" />
         </Link>
       </div>
       <div className="mt-3">
