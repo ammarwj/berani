@@ -194,29 +194,30 @@ export default function AdminPage() {
             <li key={r.id}>
               <Link href={`/admin/${r.id}`} className="block">
                 <Card className="hover:border-primary-container transition">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <UrgencyBadge urgency={r.urgency} />
-                    <StatusBadge status={r.status} />
-                    <span className="text-xs text-text-text-muted">
-                      {r.category}
-                    </span>
-                    {r.is_anonymous && (
-                      <span className="text-xs text-text-muted bg-surface-container-low px-2 py-0.5 rounded-full">
-                        mode anonim
-                      </span>
-                    )}
+                  <div className="flex items-start justify-between gap-space-sm">
+                    <div className="flex items-center gap-space-xs flex-wrap">
+                      <UrgencyBadge urgency={r.urgency} />
+                      <StatusBadge status={r.status} />
+                      {r.is_anonymous && (
+                        <span className="t-label-sm text-text-muted bg-surface-container-low px-2 py-0.5 rounded-full">
+                          mode anonim
+                        </span>
+                      )}
+                    </div>
+                    <Icon name="chevron_right" className="text-[20px] text-text-muted shrink-0" />
                   </div>
-                  <p className="text-xs text-text-muted mb-1">
-                    {/* Laporan anonim lama (sebelum migrasi 0005) memang tidak pernah
-                        menyimpan pelapornya — jangan tampilkan seolah datanya hilang. */}
-                    {r.reporter_name ||
-                      r.reporter_email ||
-                      "Identitas tidak tersimpan"}
-                  </p>
-                  <p className="text-sm line-clamp-2">{r.description}</p>
-                  <p className="text-xs text-text-text-muted mt-1 t-label tracking-wider">
-                    {r.ticket_code}
-                  </p>
+
+                  <p className="t-label text-text-primary capitalize mt-space-sm">{r.category}</p>
+                  <p className="t-body text-text-muted line-clamp-2 mt-space-xs">{r.description}</p>
+
+                  <div className="flex items-center justify-between gap-space-sm mt-space-sm pt-space-sm border-t border-border-subtle">
+                    <p className="t-label-md text-text-muted truncate">
+                      {/* Laporan anonim lama (sebelum migrasi 0005) memang tidak pernah
+                          menyimpan pelapornya — jangan tampilkan seolah datanya hilang. */}
+                      {r.reporter_name || r.reporter_email || "Identitas tidak tersimpan"}
+                    </p>
+                    <p className="t-label-sm text-text-muted tracking-wider shrink-0">{r.ticket_code}</p>
+                  </div>
                 </Card>
               </Link>
             </li>
