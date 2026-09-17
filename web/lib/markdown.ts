@@ -14,11 +14,30 @@ export type Block =
   | { t: "h"; children: Inline[] }
   | { t: "p"; children: Inline[] }
   | { t: "ul"; items: Inline[][] }
-  | { t: "ol"; items: Inline[][] };
+  | { t: "ol"; items: Inline[][] }
+  | { t: "img"; src: string; alt: string }
+  | { t: "youtube"; id: string };
 
 // Skema yang boleh jadi tautan. `javascript:` dan `data:` tidak termasuk —
 // keduanya menjalankan kode saat diklik siswa.
 const SAFE_SCHEME = /^(https?:\/\/|mailto:|tel:)/i;
+// Gambar ditempel dari luar (URL eksternal) atau diunggah lewat API sendiri —
+// http:// ikut diizinkan karena API dev jalan di http://localhost. Tidak ada
+// data: (bisa membawa payload besar sembarangan lewat body materi).
+const IMAGE_SCHEME = /^https?:\/\//i;
+
+// Satu baris sendiri, bukan campur dengan teks lain — sama seperti heading.
+const IMAGE_LINE = /^!\[([^\]]*)\]\((\S+)\)$/;
+// Bukan sintaks markdown standar (tidak ada video embed di markdown), tapi
+// satu-satunya jalan membuatnya adalah tombol toolbar, jadi bentuknya bebas
+// kita tentukan sendiri.
+const YOUTUBE_LINE = /^\[youtube\]\((\S+)\)$/;
+const YOUTUBE_ID = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+
+export function youtubeId(url: string): string | null {
+  const m = YOUTUBE_ID.exec(url);
+  return m ? m[1] : null;
+}
 
 const INLINE = /\[([^\]]+)\]\(([^)\s]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*/;
 
@@ -49,9 +68,15 @@ export function parseMarkdown(src: string): Block[] {
     const lines = raw.split("\n").filter((l) => l.trim() !== "");
     if (lines.length === 0) continue;
 
+    const img = lines.length === 1 ? IMAGE_LINE.exec(lines[0]) : null;
+    const yt = lines.length === 1 ? YOUTUBE_LINE.exec(lines[0]) : null;
     const bullets = lines.every((l) => /^\s*[-*]\s+/.test(l));
     const numbers = lines.every((l) => /^\s*\d+[.)]\s+/.test(l));
-    if (bullets) {
+    if (img && IMAGE_SCHEME.test(img[2])) {
+      blocks.push({ t: "img", alt: img[1], src: img[2] });
+    } else if (yt && youtubeId(yt[1])) {
+      blocks.push({ t: "youtube", id: youtubeId(yt[1])! });
+    } else if (bullets) {
       blocks.push({ t: "ul", items: lines.map((l) => parseInline(l.replace(/^\s*[-*]\s+/, ""))) });
     } else if (numbers) {
       blocks.push({ t: "ol", items: lines.map((l) => parseInline(l.replace(/^\s*\d+[.)]\s+/, ""))) });

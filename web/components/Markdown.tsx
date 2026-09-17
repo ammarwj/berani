@@ -33,6 +33,21 @@ export default function Markdown({ source, className = "" }: { source: string; c
     <div className={`flex flex-col gap-3 leading-relaxed ${className}`}>
       {parseMarkdown(source).map((b, i) => {
         if (b.t === "h") return <h2 key={i} className="t-title text-text-primary mt-2"><Spans nodes={b.children} /></h2>;
+        if (b.t === "img")
+          // eslint-disable-next-line @next/next/no-img-element -- URL eksternal guru, bukan aset lokal yang bisa dioptimalkan next/image
+          return <img key={i} src={b.src} alt={b.alt} className="rounded-xl max-w-full" />;
+        if (b.t === "youtube")
+          return (
+            <div key={i} className="aspect-video rounded-xl overflow-hidden">
+              <iframe
+                className="w-full h-full"
+                src={`https://www.youtube-nocookie.com/embed/${b.id}`}
+                title="Video YouTube"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          );
         if (b.t === "ul")
           return (
             <ul key={i} className="list-disc pl-5 flex flex-col gap-1.5">

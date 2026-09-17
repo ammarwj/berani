@@ -154,7 +154,7 @@ func (h *Handler) Attach(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key, err := h.Storage.Upload(r.Context(), header.Filename, contentType, file)
+	key, err := h.Storage.Upload(r.Context(), "reports", header.Filename, contentType, file)
 	if err != nil {
 		http.Error(w, "gagal mengunggah lampiran", http.StatusBadGateway)
 		return

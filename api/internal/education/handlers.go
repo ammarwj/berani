@@ -8,9 +8,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"berani.id/api/internal/middleware"
+	"berani.id/api/internal/storage"
 )
 
-type Handler struct{ DB *pgxpool.Pool }
+type Handler struct {
+	DB      *pgxpool.Pool
+	Storage *storage.Storage
+}
 
 type module struct {
 	ID          string       `json:"id"`

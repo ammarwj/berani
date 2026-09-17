@@ -66,11 +66,15 @@ func NewRouter(d Deps) http.Handler {
 	post(mux, "/auth/reset-password", authLimit(http.HandlerFunc(authH.ResetPassword)))
 	mux.Handle("GET /auth/me", requireAuth(http.HandlerFunc(authH.Me)))
 
-	eduH := &education.Handler{DB: d.DB}
+	eduH := &education.Handler{DB: d.DB, Storage: d.Storage}
 	mux.Handle("GET /education/modules", optionalAuth(http.HandlerFunc(eduH.List)))
 	mux.Handle("GET /education/modules/{id}", optionalAuth(http.HandlerFunc(eduH.Get)))
 	mux.Handle("POST /education/modules/{id}/complete", requireAuth(http.HandlerFunc(eduH.Complete)))
 	mux.Handle("GET /education/progress", requireAuth(http.HandlerFunc(eduH.Progress)))
+	// Publik & tanpa auth: gambar isi materi harus tetap tampil di halaman siswa
+	// yang dibuka tanpa login. ServeUpload sendiri yang membatasi hanya prefix
+	// "materi/" yang bisa diakses lewat sini.
+	mux.HandleFunc("GET /uploads/{key...}", eduH.ServeUpload)
 
 	reflH := &reflection.Handler{DB: d.DB, Cipher: d.Cipher}
 	mux.Handle("GET /reflections/prompt", requireAuth(http.HandlerFunc(reflH.Prompt)))
@@ -106,6 +110,7 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("POST /admin/education/modules", admin(eduH.AdminCreate))
 	mux.Handle("GET /admin/education/modules/{id}", admin(eduH.AdminGet))
 	mux.Handle("PATCH /admin/education/modules/{id}", admin(eduH.AdminUpdate))
+	mux.Handle("POST /admin/education/uploads", admin(eduH.UploadImage))
 	mux.Handle("GET /admin/training/scenarios", admin(trainH.AdminList))
 	mux.Handle("POST /admin/training/scenarios", admin(trainH.AdminCreate))
 	mux.Handle("GET /admin/training/scenarios/{id}", admin(trainH.AdminGet))

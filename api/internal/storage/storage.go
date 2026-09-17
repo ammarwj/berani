@@ -41,13 +41,16 @@ func New(cfg config.R2Config) *Storage {
 	return &Storage{client: client, bucket: cfg.Bucket}
 }
 
-// Upload stores the object under a random key. The key intentionally encodes no
-// user identity, so attachments on anonymous reports stay unlinkable.
-func (s *Storage) Upload(ctx context.Context, filename, contentType string, body io.Reader) (string, error) {
+// Upload stores the object under a random key inside prefix/. The key
+// intentionally encodes no user identity, so attachments on anonymous reports
+// stay unlinkable. The prefix separates buckets of trust: "reports/" objects
+// stay behind SignedURL, "materi/" objects are served back out publicly (see
+// education.ServeUpload) — never point the same prefix at both.
+func (s *Storage) Upload(ctx context.Context, prefix, filename, contentType string, body io.Reader) (string, error) {
 	if s == nil {
 		return "", ErrNotConfigured
 	}
-	key, err := randomKey(filename)
+	key, err := randomKey(prefix, filename)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +82,27 @@ func (s *Storage) SignedURL(ctx context.Context, key string, ttl time.Duration) 
 	return req.URL, nil
 }
 
-func randomKey(filename string) (string, error) {
+// Get fetches an object back out, for endpoints that stream materi images to
+// students directly rather than handing out a SignedURL.
+func (s *Storage) Get(ctx context.Context, key string) (io.ReadCloser, string, error) {
+	if s == nil {
+		return nil, "", ErrNotConfigured
+	}
+	out, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	ct := ""
+	if out.ContentType != nil {
+		ct = *out.ContentType
+	}
+	return out.Body, ct, nil
+}
+
+func randomKey(prefix, filename string) (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
@@ -88,5 +111,5 @@ func randomKey(filename string) (string, error) {
 	if len(ext) > 10 {
 		ext = ""
 	}
-	return "reports/" + hex.EncodeToString(b) + ext, nil
+	return prefix + "/" + hex.EncodeToString(b) + ext, nil
 }

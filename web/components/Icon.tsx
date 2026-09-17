@@ -44,6 +44,7 @@ export const ICON_NAMES = [
   "settings",
   "shield",
   "shield_person",
+  "smart_display",
   "spa",
   "stars",
   "task_alt",

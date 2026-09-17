@@ -4,7 +4,7 @@
 // ada dangerouslySetInnerHTML, tidak ada sanitizer HTML yang perlu ditambah di
 // server. Konversi terjadi hanya di dua titik: saat editor dibuka dan saat
 // guru mengetik.
-import { parseMarkdown, type Inline } from "./markdown";
+import { parseMarkdown, youtubeId, type Inline } from "./markdown";
 
 type Mark = { type: string; attrs?: { href?: string } };
 type TextNode = { type: "text"; text: string; marks?: Mark[] };
@@ -38,6 +38,9 @@ export function toDoc(md: string): Doc {
       return { type: "heading", attrs: { level: 2 }, content: b.children.map(text) };
     if (b.t === "ul") return { type: "bulletList", content: b.items.map(item) };
     if (b.t === "ol") return { type: "orderedList", content: b.items.map(item) };
+    if (b.t === "img") return { type: "image", attrs: { src: b.src, alt: b.alt } };
+    if (b.t === "youtube")
+      return { type: "youtube", attrs: { src: `https://www.youtube.com/watch?v=${b.id}` } };
     return para(b.children.map(text));
   });
   // Dokumen ProseMirror tidak boleh kosong — skemanya mewajibkan minimal satu blok.
@@ -70,7 +73,13 @@ export function toMarkdown(doc: Doc): string {
   const out: string[] = [];
   for (const b of doc.content ?? []) {
     if (b.type === "heading") out.push(`## ${inline(b.content)}`);
-    else if (b.type === "bulletList" || b.type === "orderedList") {
+    else if (b.type === "image") {
+      const src = b.attrs?.src as string | undefined;
+      if (src) out.push(`![${(b.attrs?.alt as string) ?? ""}](${src})`);
+    } else if (b.type === "youtube") {
+      const id = youtubeId((b.attrs?.src as string) ?? "");
+      if (id) out.push(`[youtube](https://www.youtube.com/watch?v=${id})`);
+    } else if (b.type === "bulletList" || b.type === "orderedList") {
       const ordered = b.type === "orderedList";
       const lines = (b.content ?? []).map((li, i) => {
         const body = (li.content ?? []).map((p) => inline(p.content)).join(" ");
