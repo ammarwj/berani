@@ -38,6 +38,7 @@ export const ICON_NAMES = [
   "person_add",
   "phone_in_talk",
   "psychology",
+  "quiz",
   "record_voice_over",
   "school",
   "security",
