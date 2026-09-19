@@ -30,14 +30,14 @@ export default function LatihanPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setAuthed(isLoggedIn());
+    const ok = isLoggedIn();
+    setAuthed(ok);
+    if (!ok) return;
     api<Scenario[]>("/training/scenarios")
       .then(setScenarios)
       .catch(() => {})
       .finally(() => setLoading(false));
-    if (isLoggedIn()) {
-      api<Progress>("/training/progress").then(setProgress).catch(() => {});
-    }
+    api<Progress>("/training/progress").then(setProgress).catch(() => {});
   }, []);
 
   async function choose(scenario: Scenario, index: number) {
@@ -60,6 +60,19 @@ export default function LatihanPage() {
     ? Math.round((progress.attempted / progress.total) * 100)
     : 0;
 
+  if (authed === false) {
+    return (
+      <main className="flex-1 w-full pt-16 pb-24">
+        <div className="max-w-2xl mx-auto w-full px-margin pt-space-lg">
+          <h1 className="t-headline-lg text-text-primary mb-space-md">
+            Latihan Tanggap &amp; Berani <span aria-hidden>💪</span>
+          </h1>
+          <LoginRequired what="mengakses latihan tanggap" />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex-1 w-full pt-16 pb-24">
       <div className="max-w-2xl mx-auto w-full px-margin flex flex-col gap-space-md pt-space-lg">
@@ -76,8 +89,6 @@ export default function LatihanPage() {
             Tidak ada yang dinilai salah — ini ruang belajar.
           </p>
         </header>
-
-        {authed === false && <LoginRequired what="menyimpan hasil latihanmu" />}
 
         {progress && progress.total > 0 && (
           <section className="bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card">
@@ -138,7 +149,7 @@ export default function LatihanPage() {
                         <button
                           key={i}
                           onClick={() => choose(s, i)}
-                          disabled={!!result || authed === false}
+                          disabled={!!result}
                           className={`flex items-start gap-space-sm text-left border rounded-xl p-space-md transition disabled:cursor-default ${
                             picked
                               ? result!.is_best

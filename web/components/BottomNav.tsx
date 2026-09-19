@@ -4,18 +4,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Icon from "@/components/Icon";
-import { getRole } from "@/lib/api";
+import { getRole, isLoggedIn } from "@/lib/api";
 import { HIDE_SHELL, navItems } from "@/components/nav-routes";
 
 export default function BottomNav() {
   const pathname = usePathname();
-  // Role ada di localStorage, jadi baru terbaca setelah mount. Render awal
-  // memakai nav siswa supaya markup server & klien cocok.
+  // Role & sesi ada di localStorage, jadi baru terbaca setelah mount. Render
+  // awal memakai nav siswa & anggap belum masuk supaya markup server & klien cocok.
   const [role, setRole] = useState<string | null>(null);
-  useEffect(() => setRole(getRole()), [pathname]);
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => {
+    setRole(getRole());
+    setAuthed(isLoggedIn());
+  }, [pathname]);
   const items = navItems(role);
 
-  if (HIDE_SHELL.some((p) => pathname === p || pathname?.startsWith(`${p}/`))) return null;
+  // Splash di "/" (belum masuk) tampil penuh layar seperti halaman auth.
+  if (
+    HIDE_SHELL.some((p) => pathname === p || pathname?.startsWith(`${p}/`)) ||
+    (pathname === "/" && !authed)
+  )
+    return null;
 
   // Cocok terpanjang yang menang: /admin/materi berawalan /admin/, jadi tanpa ini
   // tab Laporan ikut menyala di halaman Materi.

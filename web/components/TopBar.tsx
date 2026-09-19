@@ -29,7 +29,13 @@ export default function TopBar() {
       .catch(() => setEmail(""));
   }, [pathname]);
 
-  if (HIDE_SHELL.some((p) => pathname === p || pathname?.startsWith(`${p}/`))) return null;
+  // Splash di "/" (belum masuk) tampil penuh layar seperti halaman auth — baru
+  // dapat header setelah login, saat "/" berubah jadi dashboard.
+  if (
+    HIDE_SHELL.some((p) => pathname === p || pathname?.startsWith(`${p}/`)) ||
+    (pathname === "/" && !authed)
+  )
+    return null;
 
   function logout() {
     clearSession();

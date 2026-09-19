@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, isLoggedIn } from "@/lib/api";
-import { Empty } from "@/components/ui";
+import { Empty, LoginRequired } from "@/components/ui";
 import Icon from "@/components/Icon";
 
 type Module = {
@@ -18,19 +18,21 @@ type Module = {
 type Progress = { total: number; completed: number; badge: string };
 
 export default function EdukasiPage() {
+  const [authed, setAuthed] = useState<boolean | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("semua");
 
   useEffect(() => {
+    const ok = isLoggedIn();
+    setAuthed(ok);
+    if (!ok) return;
     api<Module[]>("/education/modules")
       .then(setModules)
       .catch(() => {})
       .finally(() => setLoading(false));
-    if (isLoggedIn()) {
-      api<Progress>("/education/progress").then(setProgress).catch(() => {});
-    }
+    api<Progress>("/education/progress").then(setProgress).catch(() => {});
   }, []);
 
   const categories = useMemo(
@@ -41,6 +43,17 @@ export default function EdukasiPage() {
   const pct = progress && progress.total > 0
     ? Math.round((progress.completed / progress.total) * 100)
     : 0;
+
+  if (authed === false) {
+    return (
+      <main className="flex-1 w-full pt-16 pb-28">
+        <div className="max-w-2xl mx-auto w-full px-margin pt-space-lg">
+          <h1 className="t-headline-lg text-text-primary mb-space-md">Edukasi</h1>
+          <LoginRequired what="mengakses materi edukasi" />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex-1 w-full pt-16 pb-28">

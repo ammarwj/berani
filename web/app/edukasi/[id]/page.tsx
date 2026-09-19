@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, isLoggedIn } from "@/lib/api";
-import { Card, Button, Alert, Empty } from "@/components/ui";
+import { Card, Button, Alert, Empty, LoginRequired } from "@/components/ui";
 import Markdown from "@/components/Markdown";
 import Icon from "@/components/Icon";
 
@@ -54,6 +54,7 @@ type Module = {
 
 export default function ModulePage({ params }: PageProps<"/edukasi/[id]">) {
   const { id } = use(params);
+  const [authed, setAuthed] = useState<boolean | null>(null);
   const [module, setModule] = useState<Module | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [score, setScore] = useState<number | null>(null);
@@ -61,6 +62,9 @@ export default function ModulePage({ params }: PageProps<"/edukasi/[id]">) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const ok = isLoggedIn();
+    setAuthed(ok);
+    if (!ok) return;
     api<Module>(`/education/modules/${id}`)
       .then(setModule)
       .catch(() => setError("Materi tidak ditemukan."));
@@ -90,6 +94,13 @@ export default function ModulePage({ params }: PageProps<"/edukasi/[id]">) {
     }
   }
 
+  if (authed === false) {
+    return (
+      <main className="flex-1 max-w-2xl mx-auto w-full px-margin pt-22 pb-28">
+        <LoginRequired what="mengakses materi edukasi" />
+      </main>
+    );
+  }
   if (error && !module) {
     return (
       <main className="flex-1 max-w-2xl mx-auto w-full px-margin pt-22 pb-28">
@@ -204,13 +215,6 @@ export default function ModulePage({ params }: PageProps<"/edukasi/[id]">) {
             {quiz.length > 0
               ? `Skor kuismu ${score}%. Materi ditandai selesai.`
               : "Materi ditandai selesai."}
-          </Alert>
-        ) : !isLoggedIn() ? (
-          <Alert kind="info">
-            <Link href="/login" className="underline font-semibold">
-              Masuk
-            </Link>{" "}
-            untuk menyimpan kemajuan belajarmu.
           </Alert>
         ) : (
           <Button
