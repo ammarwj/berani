@@ -15,6 +15,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import Icon from "@/components/Icon";
+import AttachmentViewer, { type Attachment } from "@/components/AttachmentViewer";
 
 type Detail = {
   id: string;
@@ -29,7 +30,7 @@ type Detail = {
   reporter_name: string;
   reporter_email: string;
   ticket_code: string;
-  attachments: { filename: string; url: string }[];
+  attachments: Attachment[];
   notes: { note: string; status_after: string; created_at: string }[];
 };
 
@@ -176,26 +177,7 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
         {report.attachments.length > 0 && (
           <div className="mt-4">
             <p className="text-sm font-medium mb-1">Bukti</p>
-            <ul className="flex flex-col gap-1">
-              {report.attachments.map((a, i) => (
-                <li key={i} className="text-sm">
-                  {a.url ? (
-                    <a
-                      href={a.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary"
-                    >
-                      {a.filename}
-                    </a>
-                  ) : (
-                    <span className="text-text-text-muted">
-                      {a.filename} (tautan tidak tersedia)
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <AttachmentViewer attachments={report.attachments} />
           </div>
         )}
       </Card>

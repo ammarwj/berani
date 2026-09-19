@@ -384,13 +384,14 @@ func (h *Handler) AdminUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 type attachment struct {
-	Filename string `json:"filename"`
-	URL      string `json:"url"`
+	Filename    string `json:"filename"`
+	URL         string `json:"url"`
+	ContentType string `json:"content_type"`
 }
 
 func (h *Handler) attachmentsFor(r *http.Request, reportID string) ([]attachment, error) {
 	rows, err := h.DB.Query(r.Context(),
-		`SELECT object_key, filename FROM report_attachments WHERE report_id = $1 ORDER BY created_at`, reportID)
+		`SELECT object_key, filename, coalesce(content_type, '') FROM report_attachments WHERE report_id = $1 ORDER BY created_at`, reportID)
 	if err != nil {
 		return nil, err
 	}
@@ -398,8 +399,8 @@ func (h *Handler) attachmentsFor(r *http.Request, reportID string) ([]attachment
 
 	out := []attachment{}
 	for rows.Next() {
-		var key, filename string
-		if err := rows.Scan(&key, &filename); err != nil {
+		var key, filename, contentType string
+		if err := rows.Scan(&key, &filename, &contentType); err != nil {
 			return nil, err
 		}
 		// Storage may be unconfigured; still list the file, just without a link.
@@ -407,7 +408,7 @@ func (h *Handler) attachmentsFor(r *http.Request, reportID string) ([]attachment
 		if err != nil {
 			url = ""
 		}
-		out = append(out, attachment{Filename: filename, URL: url})
+		out = append(out, attachment{Filename: filename, URL: url, ContentType: contentType})
 	}
 	return out, nil
 }
