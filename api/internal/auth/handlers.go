@@ -192,10 +192,15 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	err := h.DB.QueryRow(r.Context(), `SELECT id FROM users WHERE email = $1`, email).Scan(&userID)
 	if err == nil {
 		if token, err := issueToken(r.Context(), h.DB, userID, "reset_password", time.Hour); err == nil {
-			h.mail(email, "Atur ulang password BERANI",
-				"Buka tautan berikut untuk mengatur ulang passwordmu (berlaku 1 jam):\n\n"+
-					h.AppBaseURL+"/reset-password?token="+token+
-					"\n\nAbaikan email ini jika kamu tidak meminta perubahan password.")
+			h.mail(email, mailer.Email{
+				Subject: "Atur ulang password BERANI",
+				Heading: "Buat password baru",
+				Intro:   "Kami menerima permintaan untuk mengatur ulang password akun BERANI-mu.",
+				Action:  "Buat password baru",
+				URL:     h.AppBaseURL + "/reset-password?token=" + token,
+				Expiry:  "Tautan ini berlaku 1 jam.",
+				Note:    "Kalau kamu tidak meminta ini, abaikan saja email ini. Password lamamu tetap aktif.",
+			})
 		}
 	}
 
@@ -240,16 +245,22 @@ func (h *Handler) sendVerificationEmail(r *http.Request, userID, email string) {
 		log.Printf("issue verification token: %v", err)
 		return
 	}
-	h.mail(email, "Verifikasi email BERANI",
-		"Selamat datang di BERANI!\n\nKlik tautan berikut untuk memverifikasi emailmu (berlaku 24 jam):\n\n"+
-			h.AppBaseURL+"/verify-email?token="+token)
+	h.mail(email, mailer.Email{
+		Subject: "Verifikasi email BERANI",
+		Heading: "Satu langkah lagi",
+		Intro:   "Akunmu sudah dibuat. Verifikasi alamat email ini supaya kamu bisa masuk dan mulai belajar.",
+		Action:  "Verifikasi email",
+		URL:     h.AppBaseURL + "/verify-email?token=" + token,
+		Expiry:  "Tautan ini berlaku 24 jam.",
+		Note:    "Kalau kamu tidak mendaftar di BERANI, abaikan email ini.",
+	})
 }
 
-func (h *Handler) mail(to, subject, body string) {
+func (h *Handler) mail(to string, e mailer.Email) {
 	if h.Mailer == nil {
 		return
 	}
-	if err := h.Mailer.Send(to, subject, body); err != nil {
+	if err := h.Mailer.SendEmail(to, e); err != nil {
 		log.Printf("send mail to %s: %v", to, err)
 	}
 }

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"berani.id/api/internal/mailer"
 )
 
 // Handler management user ada di package auth karena issueToken, h.mail, dan
@@ -159,10 +161,15 @@ func (h *Handler) AdminResetPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	h.mail(email, "Atur ulang password BERANI",
-		"Admin sekolah meminta pengaturan ulang password akunmu.\n\n"+
-			"Buka tautan berikut untuk membuat password baru (berlaku 1 jam):\n\n"+
-			h.AppBaseURL+"/reset-password?token="+token)
+	h.mail(email, mailer.Email{
+		Subject: "Atur ulang password BERANI",
+		Heading: "Admin sekolah mengatur ulang passwordmu",
+		Intro:   "Admin sekolah meminta pengaturan ulang password akun BERANI-mu. Buat password baru untuk bisa masuk lagi.",
+		Action:  "Buat password baru",
+		URL:     h.AppBaseURL + "/reset-password?token=" + token,
+		Expiry:  "Tautan ini berlaku 1 jam.",
+		Note:    "Kalau kamu merasa ini keliru, hubungi guru pendamping di sekolahmu.",
+	})
 
 	w.WriteHeader(http.StatusNoContent)
 }

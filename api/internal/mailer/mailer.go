@@ -1,11 +1,15 @@
 package mailer
 
 import (
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
+	"mime"
 	"net"
+	"net/mail"
 	"net/smtp"
 	"strings"
 
@@ -63,25 +67,81 @@ func New(cfg config.SMTPConfig) *Mailer {
 // Send delivers an email, or logs it when SMTP is unconfigured so local dev
 // can still complete verification and reset flows.
 func (m *Mailer) Send(to, subject, body string) error {
+	return m.send(to, subject, body, "")
+}
+
+// SendEmail delivers a designed message as multipart/alternative. The plain
+// part is what gets logged in dev and what text-only clients show.
+func (m *Mailer) SendEmail(to string, e Email) error {
+	return m.send(to, e.Subject, e.Text(), e.HTML())
+}
+
+func (m *Mailer) send(to, subject, text, html string) error {
 	if !m.cfg.Configured() {
-		log.Printf("[mailer: no SMTP configured] to=%s subject=%q\n%s", to, subject, body)
+		log.Printf("[mailer: no SMTP configured] to=%s subject=%q\n%s", to, subject, text)
 		return nil
 	}
 
-	msg := strings.Join([]string{
-		"From: " + m.cfg.From,
-		"To: " + to,
-		"Subject: " + subject,
-		"MIME-Version: 1.0",
-		"Content-Type: text/plain; charset=UTF-8",
-		"",
-		body,
-	}, "\r\n")
+	msg := buildMessage(m.cfg.From, to, subject, text, html)
 
 	addr := fmt.Sprintf("%s:%s", m.cfg.Host, m.cfg.Port)
 	var auth smtp.Auth
 	if m.cfg.Username != "" {
 		auth = smtp.PlainAuth("", m.cfg.Username, m.cfg.Password, m.cfg.Host)
 	}
-	return smtp.SendMail(addr, auth, m.cfg.From, []string{to}, []byte(msg))
+	// Envelope sender must be the bare address: SMTP_FROM carries a display name
+	// ("BERANI <no-reply@…>") for the header, and relays reject that in MAIL FROM.
+	return smtp.SendMail(addr, auth, senderAddress(m.cfg.From), []string{to}, []byte(msg))
+}
+
+// senderAddress strips the display name from an RFC 5322 address.
+func senderAddress(from string) string {
+	if a, err := mail.ParseAddress(from); err == nil {
+		return a.Address
+	}
+	return from
+}
+
+// buildMessage assembles the MIME message. With html empty it stays a plain
+// text/plain mail; otherwise both parts go out as multipart/alternative, ordered
+// simplest-first as RFC 2046 requires — clients render the last part they
+// understand, so reversing the order hides the designed version.
+func buildMessage(from, to, subject, text, html string) string {
+	var b strings.Builder
+	b.WriteString("From: " + from + "\r\n")
+	b.WriteString("To: " + to + "\r\n")
+	// Subjects are Indonesian and may carry non-ASCII; unencoded they arrive as
+	// mojibake in strict clients.
+	b.WriteString("Subject: " + mime.QEncoding.Encode("UTF-8", subject) + "\r\n")
+	b.WriteString("MIME-Version: 1.0\r\n")
+
+	if html == "" {
+		b.WriteString("Content-Type: text/plain; charset=UTF-8\r\n\r\n")
+		b.WriteString(text)
+		return b.String()
+	}
+
+	boundary := "berani-" + randomBoundary()
+	b.WriteString("Content-Type: multipart/alternative; boundary=\"" + boundary + "\"\r\n\r\n")
+
+	b.WriteString("--" + boundary + "\r\n")
+	b.WriteString("Content-Type: text/plain; charset=UTF-8\r\n\r\n")
+	b.WriteString(text + "\r\n\r\n")
+
+	b.WriteString("--" + boundary + "\r\n")
+	b.WriteString("Content-Type: text/html; charset=UTF-8\r\n\r\n")
+	b.WriteString(html + "\r\n\r\n")
+
+	b.WriteString("--" + boundary + "--\r\n")
+	return b.String()
+}
+
+// randomBoundary keeps the delimiter unguessable so body content can never
+// collide with it and truncate the message.
+func randomBoundary() string {
+	b := make([]byte, 12)
+	if _, err := rand.Read(b); err != nil {
+		return "fallback0000"
+	}
+	return hex.EncodeToString(b)
 }
