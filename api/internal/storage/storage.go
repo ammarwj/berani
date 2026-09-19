@@ -102,6 +102,25 @@ func (s *Storage) Get(ctx context.Context, key string) (io.ReadCloser, string, e
 	return out.Body, ct, nil
 }
 
+// Bucket reports the configured bucket name, for diagnostics.
+func (s *Storage) Bucket() string {
+	if s == nil {
+		return ""
+	}
+	return s.bucket
+}
+
+// Check verifies the credentials actually reach the bucket. HeadBucket, not a
+// test upload: it needs no write permission and leaves no object behind, so the
+// check is safe to run against production.
+func (s *Storage) Check(ctx context.Context) error {
+	if s == nil {
+		return ErrNotConfigured
+	}
+	_, err := s.client.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: aws.String(s.bucket)})
+	return err
+}
+
 func randomKey(prefix, filename string) (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {

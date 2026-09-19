@@ -120,6 +120,9 @@ func NewRouter(d Deps) http.Handler {
 	superAdmin := func(h http.HandlerFunc) http.Handler {
 		return requireAuth(middleware.RequireRole("super_admin")(h))
 	}
+	// Super admin saja: jawabannya menyebut host & bucket, dan tiap panggilan
+	// membuka koneksi keluar ke SMTP dan R2.
+	mux.Handle("GET /admin/diagnostics", superAdmin(diagnosticsHandler(d.Mailer, d.Storage)))
 	mux.Handle("PATCH /admin/settings", superAdmin(setH.Update))
 	mux.Handle("GET /admin/users", superAdmin(authH.AdminListUsers))
 	mux.Handle("POST /admin/users", superAdmin(authH.AdminCreateUser))
