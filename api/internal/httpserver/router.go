@@ -82,6 +82,7 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /reflections", requireAuth(http.HandlerFunc(reflH.List)))
 	mux.Handle("GET /reflections/moods", requireAuth(http.HandlerFunc(reflH.Moods)))
 	mux.Handle("DELETE /reflections/{id}", requireAuth(http.HandlerFunc(reflH.Delete)))
+	mux.Handle("POST /reflections/witness", requireAuth(http.HandlerFunc(reflH.SubmitWitness)))
 
 	trainH := &training.Handler{DB: d.DB}
 	mux.Handle("GET /training/scenarios", optionalAuth(http.HandlerFunc(trainH.ListScenarios)))

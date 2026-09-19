@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup Aplikasi BERANI v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Segoe UI', sans-serif; 
+    background: #f0f4f8;
+    padding: 20px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h2 { text-align: center; color: #333; margin-bottom: 8px; font-size: 18px; }
+  .subtitle { text-align: center; color: #666; font-size: 12px; margin-bottom: 24px; }
+  .screens {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+  .screen {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  }
+  .screen-header {
+    background: #0097b2;
+    color: white;
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+  .screen-body { padding: 16px; min-height: 300px; }
+  .caption {
+    text-align: center;
+    font-size: 10px;
+    color: #666;
+    padding: 6px;
+    background: #f8f8f8;
+    border-top: 1px solid #eee;
+  }
+  .section-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0097b2;
+    margin: 20px 0 12px 0;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #0097b2;
+  }
+  .btn-main {
+    background: #e91e8c;
+    color: white;
+    border: none;
+    padding: 10px 28px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-kirim {
+    width: 100%;
+    background: #e91e8c;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* SPLASH */
+  .splash {
+    background: linear-gradient(135deg, #0097b2, #005f73);
+    min-height: 340px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+    padding: 20px;
+  }
+  .splash .logo { font-size: 42px; font-weight: 800; letter-spacing: 4px; margin-bottom: 4px; }
+  .splash .tagline { font-size: 11px; opacity: 0.85; margin-bottom: 8px; line-height: 1.5; }
+  .web-badge {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 10px;
+    margin-bottom: 20px;
+    opacity: 0.9;
+  }
+  .quote-box {
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 10px;
+    font-style: italic;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  /* BERANDA */
+  .beranda-body {
+    background: #0097b2;
+    min-height: 340px;
+    padding: 16px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .beranda-body h3 { font-size: 13px; margin-bottom: 4px; }
+  .beranda-body p { font-size: 10px; opacity: 0.85; margin-bottom: 12px; line-height: 1.4; }
+  .progress-section {
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+  }
+  .progress-label { font-size: 10px; margin-bottom: 4px; opacity: 0.9; }
+  .progress-bar-wrap { background: rgba(255,255,255,0.3); border-radius: 10px; height: 6px; }
+  .progress-bar-fill { background: #e91e8c; border-radius: 10px; height: 6px; width: 50%; }
+  .progress-text { font-size: 9px; opacity: 0.8; margin-top: 3px; }
+  .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .menu-item {
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .menu-item .icon { font-size: 18px; margin-bottom: 3px; }
+  .notif-bar {
+    background: #fff3cd;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 9px;
+    color: #856404;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* MATERI */
+  .materi-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #e8f7fa;
+    border-left: 3px solid #0097b2;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: #333;
+    cursor: pointer;
+  }
+  .materi-item.done { border-left-color: #28a745; background: #e8f5e9; }
+  .materi-status { font-size: 14px; }
+  .materi-stars { font-size: 10px; color: #ffc107; margin-left: auto; }
+  .akses-info {
+    background: #e8f7fa;
+    border: 1px solid #0097b2;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 10px;
+    color: #005f73;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  /* BADGE */
+  .badge-section {
+    padding: 16px;
+    min-height: 300px;
+  }
+  .badge-title { font-size: 12px; font-weight: 700; color: #333; margin-bottom: 12px; }
+  .badge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .badge-item {
+    background: #f8f8f8;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    padding: 12px 8px;
+    text-align: center;
+    font-size: 10px;
+    color: #999;
+  }
+  .badge-item.earned {
+    background: #fff8e1;
+    border-color: #ffc107;
+    color: #333;
+  }
+  .badge-item .badge-icon { font-size: 24px; margin-bottom: 4px; }
+  .badge-item .badge-name { font-weight: 700; font-size: 10px; margin-bottom: 2px; }
+  .badge-item .badge-desc { font-size: 9px; }
+  .badge-item.locked { opacity: 0.5; }
+
+  /* FORM LAPOR */
+  .form-group { margin-bottom: 10px; }
+  .form-group label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 3px;
+  }
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    font-size: 10px;
+    color: #333;
+    background: #fafafa;
+  }
+  .form-group textarea { height: 50px; resize: none; }
+  .anonim-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #e8f7fa;
+    border: 1.5px solid #0097b2;
+    border-radius: 8px;
+    padding: 7px 10px;
+    margin-bottom: 10px;
+  }
+  .anonim-box input { width: auto; }
+  .anonim-box label { font-size: 10px; color: #005f73; font-weight: 600; margin: 0; }
+  .anonim-box span { font-size: 9px; color: #666; display: block; }
+
+  /* KONFIRMASI */
+  .konfirmasi-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    text-align: center;
+    padding: 20px;
+  }
+  .check-icon {
+    width: 55px; height: 55px;
+    background: #0097b2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    color: white;
+    margin-bottom: 12px;
+  }
+  .konfirmasi-body h3 { font-size: 13px; color: #333; margin-bottom: 6px; }
+  .konfirmasi-body p { font-size: 10px; color: #666; line-height: 1.5; margin-bottom: 12px; }
+  .badge-anonim {
+    background: #e8f7fa;
+    color: #005f73;
+    border: 1px solid #0097b2;
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 9px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .poin-reward {
+    background: #fff8e1;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 10px;
+    color: #856404;
+    margin-bottom: 12px;
+  }
+  .btn-kembali {
+    background: transparent;
+    color: #0097b2;
+    border: 1.5px solid #0097b2;
+    padding: 7px 20px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 10px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Blueprint Aplikasi BERANI — Versi 2</h2>
+  <p class="subtitle">Web-based Application — Dapat diakses langsung melalui browser (Chrome/Google) tanpa perlu download</p>
+
+  <div class="section-label">Tampilan Awal & Beranda</div>
+  <div class="screens">
+
+    <!-- SPLASH -->
+    <div class="screen">
+      <div class="screen-header">Halaman Pembuka</div>
+      <div class="splash">
+        <div class="logo">BERANI</div>
+        <div class="tagline">Belajar, Edukasi, & Aman<br>Terhadap Bullying</div>
+        <div class="web-badge">🌐 Buka via Chrome · Tanpa Download</div>
+        <div class="quote-box">"Keberanian bukan berarti tidak takut, tapi tetap bertindak meskipun takut."</div>
+        <button class="btn-main">MULAI</button>
+      </div>
+      <div class="caption">Gambar 3.X.1 Halaman Pembuka Aplikasi BERANI</div>
+    </div>
+
+    <!-- BERANDA -->
+    <div class="screen">
+      <div class="screen-header">Halaman Beranda</div>
+      <div class="beranda-body">
+        <div>
+          <div class="notif-bar">🔔 Sudah 2 hari belum belajar. Yuk lanjutkan!</div>
+          <h3>Halo Siswa Hebat! 👋</h3>
+          <p>Mari ciptakan sekolah yang aman dan bebas bullying</p>
+          <div class="progress-section">
+            <div class="progress-label">📚 Progress Belajarmu</div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill"></div>
+            </div>
+            <div class="progress-text">2 dari 4 materi selesai · 120 poin terkumpul ⭐</div>
+          </div>
+        </div>
+        <div class="menu-grid">
+          <div class="menu-item"><div class="icon">📚</div>Edukasi</div>
+          <div class="menu-item"><div class="icon">💭</div>Refleksi</div>
+          <div class="menu-item"><div class="icon">✏️</div>Latihan</div>
+          <div class="menu-item"><div class="icon">🔒</div>Lapor</div>
+        </div>
+      </div>
+      <div class="caption">Gambar 3.X.2 Halaman Beranda dengan Progress & Notifikasi</div>
+    </div>
+
+    <!-- MENU MATERI -->
+    <div class="screen">
+      <div class="screen-header">MENU EDUKASI</div>
+      <div class="screen-body">
+        <div class="akses-info">🔓 Semua materi bebas diakses kapan saja & urutan bebas</div>
+        <div class="materi-item done">
+          <span class="materi-status">✅</span>
+          <span>📖 Mengenal Bullying</span>
+          <span class="materi-stars">⭐⭐⭐</span>
+        </div>
+        <div class="materi-item done">
+          <span class="materi-status">✅</span>
+          <span>⚡ Jenis-Jenis Bullying</span>
+          <span class="materi-stars">⭐⭐⭐</span>
+        </div>
+        <div class="materi-item">
+          <span class="materi-status">📖</span>
+          <span>💔 Dampak Bullying</span>
+          <span class="materi-stars">☆☆☆</span>
+        </div>
+        <div class="materi-item">
+          <span class="materi-status">📖</span>
+          <span>💪 Pentingnya Melapor</span>
+          <span class="materi-stars">☆☆☆</span>
+        </div>
+      </div>
+      <div class="caption">Gambar 3.X.3 Menu Edukasi — Akses Bebas + Bintang Apresiasi</div>
+    </div>
+
+  </div>
+
+  <div class="section-label">Fitur Refleksi Diri</div>
+  <div class="screens">
+
+    <!-- REFLEKSI AWAL -->
+    <div class="screen">
+      <div class="screen-header">REFLEKSI DIRI</div>
+      <div class="screen-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; text-align:center; padding:20px;">
+        <p style="font-size:13px; color:#333; margin-bottom:8px; font-weight:600;">Pernahkah kamu melihat<br>temanmu di-bully?</p>
+        <p style="font-size:10px; color:#666; margin-bottom:20px;">Jawab dengan jujur, tidak ada yang benar atau salah</p>
+        <div style="display:flex; gap:20px; margin-bottom:20px;">
+          <div style="text-align:center;"><div style="font-size:36px;">😊</div><div style="background:#0097b2; color:white; padding:5px 14px; border-radius:14px; font-size:11px; margin-top:6px; font-weight:600;">PERNAH</div></div>
+          <div style="text-align:center;"><div style="font-size:36px;">😟</div><div style="background:#ccc; color:#333; padding:5px 14px; border-radius:14px; font-size:11px; margin-top:6px; font-weight:600;">TIDAK PERNAH</div></div>
+        </div>
+        <button style="background:#e91e8c; color:white; border:none; padding:8px 24px; border-radius:20px; font-weight:600; font-size:12px;">Lanjutkan</button>
+      </div>
+      <div class="caption">Gambar 3.X.7a Halaman Refleksi Diri — Pertanyaan Awal</div>
+    </div>
+
+    <!-- REFLEKSI RESPON PERNAH -->
+    <div class="screen">
+      <div class="screen-header">REFLEKSI DIRI — RESPON PERNAH</div>
+      <div class="screen-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; text-align:center; padding:20px;">
+        <div style="font-size:36px; margin-bottom:12px;">🤗</div>
+        <p style="font-size:12px; color:#0097b2; font-weight:700; margin-bottom:8px;">Kamu tidak sendirian.</p>
+        <p style="font-size:11px; color:#333; line-height:1.6; margin-bottom:16px;">Banyak siswa yang pernah menyaksikan hal yang sama. Keberanian untuk berbicara bisa membantu temanmu.</p>
+        <div style="background:#e8f7fa; border-radius:10px; padding:12px; width:100%; margin-bottom:10px;">
+          <p style="font-size:10px; color:#005f73; font-weight:600; margin-bottom:8px;">Mau cerita ke Guru BK?</p>
+          <button style="background:#e91e8c; color:white; border:none; padding:7px 20px; border-radius:16px; font-size:11px; font-weight:600; width:100%; margin-bottom:6px;">🔒 Lapor Sekarang</button>
+          <button style="background:transparent; color:#0097b2; border:1.5px solid #0097b2; padding:7px 20px; border-radius:16px; font-size:11px; font-weight:600; width:100%;">Nanti Saja</button>
+        </div>
+        <p style="font-size:9px; color:#999;">Laporanmu bisa dibuat anonim 🔒</p>
+      </div>
+      <div class="caption">Gambar 3.X.7b Respon Refleksi Pernah — Dorongan Empati dan Pilihan Lapor</div>
+    </div>
+
+    <!-- REFLEKSI RESPON TIDAK PERNAH -->
+    <div class="screen">
+      <div class="screen-header">REFLEKSI DIRI — TIDAK PERNAH</div>
+      <div class="screen-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; text-align:center; padding:20px;">
+        <div style="font-size:36px; margin-bottom:12px;">💪</div>
+        <p style="font-size:12px; color:#0097b2; font-weight:700; margin-bottom:8px;">Itu hal yang baik!</p>
+        <p style="font-size:11px; color:#333; line-height:1.6; margin-bottom:16px;">Meskipun belum pernah menyaksikan bullying, penting untuk tetap waspada dan tahu apa yang harus dilakukan.</p>
+        <div style="background:#e8f7fa; border-radius:10px; padding:12px; width:100%; margin-bottom:12px;">
+          <p style="font-size:10px; color:#005f73; font-weight:600; margin-bottom:8px;">Yuk pelajari cara melindungi diri dan teman!</p>
+          <button style="background:#0097b2; color:white; border:none; padding:7px 20px; border-radius:16px; font-size:11px; font-weight:600; width:100%;">📚 Pelajari Materi</button>
+        </div>
+        <p style="font-size:9px; color:#999;">Pengetahuan adalah kekuatan pertama untuk berani bertindak</p>
+      </div>
+      <div class="caption">Gambar 3.X.7c Respon Refleksi Tidak Pernah — Dorongan Belajar</div>
+    </div>
+
+    <!-- REFLEKSI AWAL 2 -->
+    <div class="screen">
+      <div class="screen-header">REFLEKSI DIRI</div>
+      <div class="screen-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; text-align:center; padding:20px;">
+        <p style="font-size:13px; color:#333; margin-bottom:8px; font-weight:600;">Pernahkah kamu melihat<br>temanmu di-bully?</p>
+        <p style="font-size:10px; color:#666; margin-bottom:20px;">Jawab dengan jujur, tidak ada yang benar atau salah</p>
+        <div style="display:flex; gap:20px; margin-bottom:20px;">
+          <div style="text-align:center;"><div style="font-size:36px;">😊</div><div style="background:#0097b2; color:white; padding:5px 14px; border-radius:14px; font-size:11px; margin-top:6px; font-weight:600;">PERNAH</div></div>
+          <div style="text-align:center;"><div style="font-size:36px;">😟</div><div style="background:#ccc; color:#333; padding:5px 14px; border-radius:14px; font-size:11px; margin-top:6px; font-weight:600;">TIDAK PERNAH</div></div>
+        </div>
+        <button style="background:#e91e8c; color:white; border:none; padding:8px 24px; border-radius:20px; font-weight:600; font-size:12px;">Lanjutkan</button>
+      </div>
+      <div class="caption">Gambar 3.X.7d Halaman Refleksi Diri — Pertanyaan Awal (Variasi 2)</div>
+    </div>
+
+    <!-- REFLEKSI RESPON PERNAH 2 -->
+    <div class="screen">
+      <div class="screen-header">REFLEKSI DIRI — RESPON PERNAH</div>
+      <div class="screen-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; text-align:center; padding:20px;">
+        <div style="font-size:36px; margin-bottom:12px;">🤗</div>
+        <p style="font-size:12px; color:#0097b2; font-weight:700; margin-bottom:8px;">Kamu tidak sendirian.</p>
+        <p style="font-size:11px; color:#333; line-height:1.6; margin-bottom:16px;">Banyak siswa yang pernah menyaksikan hal yang sama. Keberanian untuk berbicara bisa membantu temanmu.</p>
+        <div style="background:#e8f7fa; border-radius:10px; padding:12px; width:100%; margin-bottom:10px;">
+          <p style="font-size:10px; color:#005f73; font-weight:600; margin-bottom:8px;">Mau cerita ke Guru BK?</p>
+          <button style="background:#e91e8c; color:white; border:none; padding:7px 20px; border-radius:16px; font-size:11px; font-weight:600; width:100%; margin-bottom:6px;">🔒 Lapor Sekarang</button>
+          <button style="background:transparent; color:#0097b2; border:1.5px solid #0097b2; padding:7px 20px; border-radius:16px; font-size:11px; font-weight:600; width:100%;">Nanti Saja</button>
+        </div>
+        <p style="font-size:9px; color:#999;">Laporanmu bisa dibuat anonim 🔒</p>
+      </div>
+      <div class="caption">Gambar 3.X.7e Respon Refleksi Pernah — Dorongan Empati dan Pilihan Lapor (Variasi 2)</div>
+    </div>
+
+    <!-- REFLEKSI RESPON TIDAK PERNAH 2 -->
+    <div class="screen">
+      <div class="screen-header">REFLEKSI DIRI — TIDAK PERNAH</div>
+      <div class="screen-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; text-align:center; padding:20px;">
+        <div style="font-size:36px; margin-bottom:12px;">💪</div>
+        <p style="font-size:12px; color:#0097b2; font-weight:700; margin-bottom:8px;">Itu hal yang baik!</p>
+        <p style="font-size:11px; color:#333; line-height:1.6; margin-bottom:16px;">Meskipun belum pernah menyaksikan bullying, penting untuk tetap waspada dan tahu apa yang harus dilakukan.</p>
+        <div style="background:#e8f7fa; border-radius:10px; padding:12px; width:100%; margin-bottom:12px;">
+          <p style="font-size:10px; color:#005f73; font-weight:600; margin-bottom:8px;">Yuk pelajari cara melindungi diri dan teman!</p>
+          <button style="background:#0097b2; color:white; border:none; padding:7px 20px; border-radius:16px; font-size:11px; font-weight:600; width:100%;">📚 Pelajari Materi</button>
+        </div>
+        <p style="font-size:9px; color:#999;">Pengetahuan adalah kekuatan pertama untuk berani bertindak</p>
+      </div>
+      <div class="caption">Gambar 3.X.7f Respon Refleksi Tidak Pernah — Dorongan Belajar (Variasi 2)</div>
+    </div>
+
+  </div>
+
+  <div class="section-label">Fitur Pencapaian & Pelaporan</div>
+  <div class="screens">
+
+    <!-- BADGE -->
+    <div class="screen">
+      <div class="screen-header">PENCAPAIANKU</div>
+      <div class="badge-section">
+        <div class="badge-title">🏆 Badge yang Kamu Raih:</div>
+        <div class="badge-grid">
+          <div class="badge-item earned">
+            <div class="badge-icon">🌟</div>
+            <div class="badge-name">Penjelajah</div>
+            <div class="badge-desc">Selesaikan 1 materi</div>
+          </div>
+          <div class="badge-item earned">
+            <div class="badge-icon">🛡️</div>
+            <div class="badge-name">Pelindung</div>
+            <div class="badge-desc">Selesaikan semua latihan</div>
+          </div>
+          <div class="badge-item locked">
+            <div class="badge-icon">🦁</div>
+            <div class="badge-name">Pejuang BERANI</div>
+            <div class="badge-desc">Selesaikan semua materi</div>
+          </div>
+          <div class="badge-item locked">
+            <div class="badge-icon">🎖️</div>
+            <div class="badge-name">Guardian</div>
+            <div class="badge-desc">Selesaikan semua fitur</div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">Gambar 3.X.4 Halaman Pencapaian & Badge Siswa</div>
+    </div>
+
+    <!-- FORM LAPOR -->
+    <div class="screen">
+      <div class="screen-header">FITUR PELAPORAN</div>
+      <div class="screen-body">
+        <div class="anonim-box">
+          <input type="checkbox" checked>
+          <div>
+            <label>🔒 Lapor Secara Anonim</label>
+            <span>Identitasmu terlindungi sepenuhnya</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Jenis Bullying yang Terjadi</label>
+          <select>
+            <option>Pilih jenis bullying...</option>
+            <option>Bullying Fisik</option>
+            <option>Bullying Verbal</option>
+            <option>Bullying Relasional</option>
+            <option>Cyberbullying</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Posisimu dalam Kejadian</label>
+          <select>
+            <option>Pilih posisi...</option>
+            <option>Korban</option>
+            <option>Saksi</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ceritakan Kejadiannya</label>
+          <textarea placeholder="Tuliskan kejadian bullying yang kamu alami atau saksikan..."></textarea>
+        </div>
+        <button class="btn-kirim">Kirim Laporan</button>
+      </div>
+      <div class="caption">Gambar 3.X.5 Fitur Pelaporan Anonim Aplikasi BERANI</div>
+    </div>
+
+    <!-- KONFIRMASI -->
+    <div class="screen">
+      <div class="screen-header">KONFIRMASI LAPORAN</div>
+      <div class="konfirmasi-body">
+        <div class="check-icon">✓</div>
+        <h3>Laporan Berhasil Dikirim!</h3>
+        <div class="badge-anonim">🔒 Identitasmu terlindungi</div>
+        <p>Laporanmu telah diterima oleh Guru BK. Tindak lanjut akan segera dilakukan.</p>
+        <div class="poin-reward">⭐ Kamu mendapat 50 poin karena berani melapor!</div>
+        <p style="font-size:10px; color:#e91e8c; font-weight:600;">Kamu sudah berani berbuat hal yang tepat! 💪</p>
+        <br>
+        <button class="btn-kembali">Kembali ke Beranda</button>
+      </div>
+      <div class="caption">Gambar 3.X.6 Konfirmasi Laporan + Reward Poin</div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
+
+<!-- TAMBAHAN SECTION REFLEKSI -->

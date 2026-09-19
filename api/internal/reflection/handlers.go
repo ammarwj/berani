@@ -67,6 +67,37 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+type witnessInput struct {
+	Answer          bool  `json:"answer"`
+	EventAtSchool   *bool `json:"event_at_school"`
+	BullyingRelated *bool `json:"bullying_related"`
+}
+
+// SubmitWitness records the outcome of the branching bullying-related
+// questions at the end of the Ruang Refleksi flow (Jalur A's single
+// yes/no, or Jalur B's "ada kejadian?" + "berkaitan bullying?" pair).
+// Not encrypted like journal content — non-sensitive flags, kept in their
+// own table so they don't pollute the mood chart or journal history queries.
+func (h *Handler) SubmitWitness(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(middleware.CtxUserID).(string)
+
+	var in witnessInput
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		http.Error(w, "permintaan tidak valid", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := h.DB.Exec(r.Context(),
+		`INSERT INTO witness_answers (user_id, answer, event_at_school, bullying_related) VALUES ($1, $2, $3, $4)`,
+		userID, in.Answer, in.EventAtSchool, in.BullyingRelated,
+	); err != nil {
+		log.Printf("insert witness answer (user %s): %v", userID, err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
 // List returns only the caller's own entries — reflections are private per PRD §5.2.
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.CtxUserID).(string)
