@@ -106,11 +106,14 @@ export default function LaporPage() {
             <Icon name="check_circle" filled className="text-[32px]" />
           </span>
           <h1 className="t-headline-lg text-text-primary mt-space-md">
-            Laporan diterima
+            Laporan Berhasil Dikirim
           </h1>
+          <p className="t-label-md text-support-teal mt-space-xs">
+            (Identitasmu terlindungi)
+          </p>
           <p className="t-body text-text-muted mt-space-sm">
-            Terima kasih atas keberanianmu. Simpan kode tiket ini untuk memantau
-            status laporanmu.
+            Laporanmu telah diterima oleh guru BK. Tindak lanjut akan segera
+            dilakukan ☺️
           </p>
 
           <div className="flex items-center gap-space-sm bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card mt-space-lg text-left">
@@ -141,10 +144,13 @@ export default function LaporPage() {
             </button>
           </div>
 
+          <p className="t-body text-text-primary mt-space-md">
+            Kamu sudah berani berbuat hal yang tepat 🤗
+          </p>
+
           {anonymous && (
             <p className="t-body-sm text-text-muted mt-space-sm">
-              Laporan ini anonim — namamu tidak terlihat siswa lain, hanya guru
-              pendamping.
+              Laporan ini anonim — namamu tidak terlihat siswa lain.
             </p>
           )}
           {attachNote && (

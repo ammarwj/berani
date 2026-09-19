@@ -39,10 +39,19 @@ const MOODS: { key: string; emoji: string; label: string; jalur: Jalur }[] = [
 
 const moodInfo = (key: string) => MOODS.find((m) => m.key === key);
 
+const HISTORY_PAGE_SIZE = 10;
+
+const AFFIRMATIONS: Record<string, string> = {
+  senang: "Senang mendengarnya! Semoga harimu terus menyenangkan.",
+  baik: "Senang kamu baik-baik saja hari ini!",
+  biasa: "Hari yang tenang juga tidak apa-apa.",
+};
+
 type Step =
   | "mood"
   | "a2"
-  | "a-end"
+  | "a-end-pernah"
+  | "a-end-tidak"
   | "b2"
   | "b3"
   | "b4"
@@ -51,31 +60,29 @@ type Step =
   | "b-end-tenang2"
   | "history";
 
+// Tone follows which Jalur the question belongs to — teal for Jalur A
+// (steady/factual), pink for Jalur B (emotionally vulnerable) — so the color
+// language stays consistent with the mood picked in Tahap 1.
 function ChoiceButton({
-  selected,
   onClick,
   emoji,
   label,
-  variant,
+  tone,
 }: {
-  selected: boolean;
   onClick: () => void;
   emoji: string;
   label: string;
-  variant: "yes" | "no";
+  tone: "teal" | "pink";
 }) {
+  const hover =
+    tone === "pink"
+      ? "hover:border-support-pink hover:bg-support-pink-subtle"
+      : "hover:border-support-teal hover:bg-support-teal-subtle";
   return (
     <button
       type="button"
-      aria-pressed={selected}
       onClick={onClick}
-      className={`w-full flex items-center gap-space-sm px-4 py-3 rounded-xl border-2 text-left transition ${
-        selected
-          ? variant === "yes"
-            ? "border-primary-container bg-ocean-subtle text-primary"
-            : "border-text-muted bg-surface-muted text-text-primary"
-          : "border-border-subtle bg-surface-card text-text-primary"
-      }`}
+      className={`w-full flex items-center gap-space-sm px-4 py-3 rounded-xl border-2 border-border-subtle bg-surface-card text-text-primary text-left transition ${hover}`}
     >
       <span className="text-xl" aria-hidden>{emoji}</span>
       <span className="t-label font-semibold">{label}</span>
@@ -89,17 +96,24 @@ function LaporCard({
   title,
   body,
   cta,
+  tone,
   onSkip,
 }: {
   emoji: string;
   title: string;
   body: string;
   cta: string;
+  tone: "teal" | "pink";
   onSkip: () => void;
 }) {
   return (
     <div className="max-w-2xl mx-auto w-full px-margin pt-space-2xl flex flex-col items-center text-center gap-space-sm">
-      <span className="w-16 h-16 rounded-2xl bg-ocean-subtle grid place-items-center text-3xl" aria-hidden>
+      <span
+        className={`w-16 h-16 rounded-2xl grid place-items-center text-3xl ${
+          tone === "pink" ? "bg-support-pink-subtle" : "bg-support-teal-subtle"
+        }`}
+        aria-hidden
+      >
         {emoji}
       </span>
       <h1 className="t-headline-lg text-text-primary">{title}</h1>
@@ -134,6 +148,7 @@ function CalmCard({
   extraNote,
   ctaLabel,
   ctaHref,
+  tone,
   onDone,
 }: {
   emoji: string;
@@ -142,11 +157,17 @@ function CalmCard({
   extraNote?: string;
   ctaLabel?: string;
   ctaHref?: string;
+  tone: "teal" | "pink";
   onDone: () => void;
 }) {
   return (
     <div className="max-w-2xl mx-auto w-full px-margin pt-space-2xl flex flex-col items-center text-center gap-space-sm">
-      <span className="w-16 h-16 rounded-2xl bg-ocean-subtle grid place-items-center text-3xl" aria-hidden>
+      <span
+        className={`w-16 h-16 rounded-2xl grid place-items-center text-3xl ${
+          tone === "pink" ? "bg-support-pink-subtle" : "bg-support-teal-subtle"
+        }`}
+        aria-hidden
+      >
         {emoji}
       </span>
       <h1 className="t-headline-lg text-text-primary">{title}</h1>
@@ -165,13 +186,9 @@ function CalmCard({
         </Card>
       ) : null}
 
-      <button
-        type="button"
-        onClick={onDone}
-        className="t-label-sm text-primary underline underline-offset-2 mt-space-xs"
-      >
+      <Button variant="outline" onClick={onDone} className="w-full max-w-sm mt-space-xs">
         Kembali ke Beranda
-      </button>
+      </Button>
     </div>
   );
 }
@@ -187,6 +204,7 @@ export default function RefleksiPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
 
   const load = useCallback(() => {
     api<Entry[]>("/reflections").then(setEntries).catch(() => {});
@@ -218,6 +236,7 @@ export default function RefleksiPage() {
         body: JSON.stringify({ mood, content, prompt }),
       });
       setJustSaved(true);
+      setHistoryPage(1);
       load();
       const jalur = moodInfo(mood)?.jalur ?? "a";
       setStep(jalur === "a" ? "a2" : "b2");
@@ -278,7 +297,9 @@ export default function RefleksiPage() {
                       onClick={() => setMood(m.key)}
                       className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl border transition ${
                         mood === m.key
-                          ? "border-primary-container bg-ocean-subtle"
+                          ? m.jalur === "b"
+                            ? "border-support-pink bg-support-pink-subtle"
+                            : "border-support-teal bg-support-teal-subtle"
                           : "border-border-subtle bg-surface-card"
                       }`}
                     >
@@ -322,28 +343,36 @@ export default function RefleksiPage() {
       <main className="flex-1 w-full pt-16 pb-24">
         <div className="max-w-2xl mx-auto w-full px-margin pt-space-lg">
           <Card>
-            <p className="t-headline-sm text-text-primary text-center mb-space-lg">
-              Ngomong-ngomong… pernahkah kamu melihat atau mengalami bullying di sekolah?
-            </p>
-            <div className="flex flex-col gap-space-sm mb-space-lg">
+            <div className="flex flex-col items-center text-center gap-space-sm mb-space-lg">
+              <span className="w-14 h-14 rounded-2xl bg-ocean-subtle grid place-items-center text-2xl" aria-hidden>
+                {moodInfo(mood)?.emoji ?? "🙂"}
+              </span>
+              <p className="flex items-start gap-space-xs t-body-sm text-support-teal bg-support-teal-subtle rounded-xl px-3 py-2.5">
+                <Icon name="volunteer_activism" filled className="text-[16px] shrink-0 mt-0.5" />
+                {AFFIRMATIONS[mood] ?? "Senang kamu baik-baik saja hari ini!"}
+              </p>
+              <h2 className="t-headline-sm text-text-primary">Ngomong-ngomong…</h2>
+              <p className="t-body text-text-muted max-w-[36ch]">
+                Pernahkah kamu melihat atau mengalami bullying di sekolah?
+              </p>
+            </div>
+            <div className="flex flex-col gap-space-sm">
               <ChoiceButton
-                variant="yes"
-                selected={false}
+                tone="teal"
                 emoji="👀"
                 label="Ya, pernah melihat/mengalami"
                 onClick={async () => {
                   await submitWitness({ answer: true });
-                  setStep("a-end");
+                  setStep("a-end-pernah");
                 }}
               />
               <ChoiceButton
-                variant="no"
-                selected={false}
+                tone="teal"
                 emoji="🙅"
                 label="Belum pernah"
                 onClick={async () => {
                   await submitWitness({ answer: false });
-                  setStep("a-end");
+                  setStep("a-end-tidak");
                 }}
               />
             </div>
@@ -353,7 +382,7 @@ export default function RefleksiPage() {
     );
   }
 
-  if (step === "a-end") {
+  if (step === "a-end-pernah") {
     return (
       <main className="flex-1 w-full pt-16 pb-24">
         <LaporCard
@@ -361,7 +390,25 @@ export default function RefleksiPage() {
           title="Kamu tidak sendirian."
           body="Banyak siswa yang pernah menyaksikan hal yang sama. Keberanian untuk berbicara bisa membantu temanmu."
           cta="Mau cerita ke Guru BK?"
+          tone="teal"
           onSkip={() => setStep("history")}
+        />
+      </main>
+    );
+  }
+
+  if (step === "a-end-tidak") {
+    return (
+      <main className="flex-1 w-full pt-16 pb-24">
+        <CalmCard
+          emoji="💪"
+          title="Itu hal yang baik!"
+          body="Meskipun belum pernah menyaksikan bullying, penting untuk tetap waspada dan tahu apa yang harus dilakukan."
+          extraNote="Yuk pelajari cara melindungi diri dan teman dari bullying!"
+          ctaLabel="Pelajari Materi"
+          ctaHref="/edukasi"
+          tone="teal"
+          onDone={() => setStep("history")}
         />
       </main>
     );
@@ -373,12 +420,16 @@ export default function RefleksiPage() {
       <main className="flex-1 w-full pt-16 pb-24">
         <div className="max-w-2xl mx-auto w-full px-margin pt-space-lg">
           <Card>
-            <div className="text-2xl text-center mb-space-sm" aria-hidden>🤗</div>
-            <p className="t-headline-sm text-text-primary text-center mb-space-xs">Terima kasih sudah jujur.</p>
-            <p className="t-body text-text-muted text-center mb-space-md">
-              Kamu tidak sendirian. Wajar untuk merasa seperti itu kadang-kadang.
-            </p>
-            <p className="flex items-start gap-space-xs t-body text-primary bg-ocean-subtle rounded-xl px-3 py-2.5 mb-space-md">
+            <div className="flex flex-col items-center text-center gap-space-sm mb-space-md">
+              <span className="w-14 h-14 rounded-2xl bg-support-pink-subtle grid place-items-center text-2xl" aria-hidden>
+                {moodInfo(mood)?.emoji ?? "🤗"}
+              </span>
+              <p className="t-headline-sm text-text-primary">Terima kasih sudah jujur.</p>
+              <p className="t-body text-text-muted">
+                Kamu tidak sendirian. Wajar untuk merasa seperti itu kadang-kadang.
+              </p>
+            </div>
+            <p className="flex items-start gap-space-xs t-body text-support-pink bg-support-pink-subtle rounded-xl px-3 py-2.5 mb-space-md">
               <Icon name="lock" filled className="text-[18px] shrink-0 mt-0.5" />
               Ruang ini aman. Hanya kamu yang bisa membaca tulisanmu di sini.
             </p>
@@ -404,21 +455,24 @@ export default function RefleksiPage() {
       <main className="flex-1 w-full pt-16 pb-24">
         <div className="max-w-2xl mx-auto w-full px-margin pt-space-lg">
           <Card>
-            <p className="t-headline-sm text-text-primary text-center mb-space-xs">Boleh aku tanya satu hal?</p>
-            <p className="t-body text-text-muted text-center mb-space-lg">
-              Apakah ada kejadian di sekolah yang membuatmu merasa cemas atau tertekan hari ini?
-            </p>
+            <div className="flex flex-col items-center text-center gap-space-sm mb-space-lg">
+              <span className="w-14 h-14 rounded-2xl bg-support-pink-subtle grid place-items-center text-2xl" aria-hidden>
+                🤔
+              </span>
+              <p className="t-headline-sm text-text-primary">Boleh aku tanya satu hal?</p>
+              <p className="t-body text-text-muted">
+                Apakah ada kejadian di sekolah yang membuatmu merasa cemas atau tertekan hari ini?
+              </p>
+            </div>
             <div className="flex flex-col gap-space-sm mb-space-lg">
               <ChoiceButton
-                variant="yes"
-                selected={false}
+                tone="pink"
                 emoji="😔"
                 label="Ya, ada kejadian tertentu"
                 onClick={() => setStep("b4")}
               />
               <ChoiceButton
-                variant="no"
-                selected={false}
+                tone="pink"
                 emoji="🙂"
                 label="Tidak, hanya perasaan biasa"
                 onClick={async () => {
@@ -439,14 +493,18 @@ export default function RefleksiPage() {
       <main className="flex-1 w-full pt-16 pb-24">
         <div className="max-w-2xl mx-auto w-full px-margin pt-space-lg">
           <Card>
-            <p className="t-headline-sm text-text-primary text-center mb-space-xs">Satu pertanyaan lagi…</p>
-            <p className="t-body text-text-muted text-center mb-space-lg">
-              Apakah kejadian itu berkaitan dengan bullying yang kamu alami atau saksikan?
-            </p>
+            <div className="flex flex-col items-center text-center gap-space-sm mb-space-lg">
+              <span className="w-14 h-14 rounded-2xl bg-support-pink-subtle grid place-items-center text-2xl" aria-hidden>
+                💭
+              </span>
+              <p className="t-headline-sm text-text-primary">Satu pertanyaan lagi…</p>
+              <p className="t-body text-text-muted">
+                Apakah kejadian itu berkaitan dengan bullying yang kamu alami atau saksikan?
+              </p>
+            </div>
             <div className="flex flex-col gap-space-sm mb-space-lg">
               <ChoiceButton
-                variant="yes"
-                selected={false}
+                tone="pink"
                 emoji="😰"
                 label="Ya, berkaitan dengan bullying"
                 onClick={async () => {
@@ -455,8 +513,7 @@ export default function RefleksiPage() {
                 }}
               />
               <ChoiceButton
-                variant="no"
-                selected={false}
+                tone="pink"
                 emoji="🙂"
                 label="Tidak, bukan soal bullying"
                 onClick={async () => {
@@ -478,6 +535,7 @@ export default function RefleksiPage() {
           emoji="💙"
           title="Semoga harimu lebih baik."
           body="Ingat, Guru BK selalu siap mendengarmu kapan saja."
+          tone="pink"
           onDone={() => setStep("history")}
         />
       </main>
@@ -492,6 +550,7 @@ export default function RefleksiPage() {
           title="Kamu sudah sangat berani."
           body="Mengakui perasaan ini butuh keberanian. Guru BK siap membantu."
           cta="Mau cerita ke Guru BK?"
+          tone="pink"
           onSkip={() => setStep("history")}
         />
       </main>
@@ -505,6 +564,7 @@ export default function RefleksiPage() {
           emoji="💙"
           title="Semoga harimu segera membaik."
           body="Ingat, Guru BK selalu siap mendengarmu kapan saja."
+          tone="pink"
           onDone={() => setStep("history")}
         />
       </main>
@@ -513,6 +573,12 @@ export default function RefleksiPage() {
 
   // step === "history"
   const recent = entries.slice(0, 14).reverse();
+  const totalHistoryPages = Math.max(1, Math.ceil(entries.length / HISTORY_PAGE_SIZE));
+  const currentHistoryPage = Math.min(historyPage, totalHistoryPages);
+  const pagedEntries = entries.slice(
+    (currentHistoryPage - 1) * HISTORY_PAGE_SIZE,
+    currentHistoryPage * HISTORY_PAGE_SIZE,
+  );
 
   return (
     <main className="flex-1 w-full pt-16 pb-24">
@@ -565,7 +631,7 @@ export default function RefleksiPage() {
             <Empty>Belum ada refleksi. Mulai tulis yang pertama.</Empty>
           ) : (
             <ul className="flex flex-col gap-space-sm">
-              {entries.map((e) => (
+              {pagedEntries.map((e) => (
                 <li key={e.id} className="bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card">
                   <div className="flex items-start justify-between gap-space-sm">
                     <div className="min-w-0">
@@ -609,6 +675,32 @@ export default function RefleksiPage() {
                 </li>
               ))}
             </ul>
+          )}
+
+          {totalHistoryPages > 1 && (
+            <div className="flex items-center justify-between gap-space-sm mt-space-md">
+              <button
+                type="button"
+                onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                disabled={currentHistoryPage === 1}
+                className="flex items-center gap-1 t-label-md text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Icon name="arrow_back" className="text-[16px]" />
+                Sebelumnya
+              </button>
+              <span className="t-body-sm text-text-muted">
+                Halaman {currentHistoryPage} dari {totalHistoryPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages, p + 1))}
+                disabled={currentHistoryPage === totalHistoryPages}
+                className="flex items-center gap-1 t-label-md text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Berikutnya
+                <Icon name="arrow_forward" className="text-[16px]" />
+              </button>
+            </div>
           )}
         </section>
       </div>
