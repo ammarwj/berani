@@ -15,7 +15,7 @@ export type Block =
   | { t: "p"; children: Inline[] }
   | { t: "ul"; items: Inline[][] }
   | { t: "ol"; items: Inline[][] }
-  | { t: "img"; src: string; alt: string }
+  | { t: "img"; src: string; alt: string; width?: number }
   | { t: "youtube"; id: string };
 
 // Skema yang boleh jadi tautan. `javascript:` dan `data:` tidak termasuk —
@@ -27,7 +27,10 @@ const SAFE_SCHEME = /^(https?:\/\/|mailto:|tel:)/i;
 const IMAGE_SCHEME = /^https?:\/\//i;
 
 // Satu baris sendiri, bukan campur dengan teks lain — sama seperti heading.
-const IMAGE_LINE = /^!\[([^\]]*)\]\((\S+)\)$/;
+// Grup ke-3 opsional (`=320x`) menyimpan lebar yang diatur guru lewat drag
+// handle di editor — konvensi dipinjam dari kramdown/Marp. `\S+?` non-greedy
+// supaya suffix itu tidak ikut ketelan ke dalam src.
+const IMAGE_LINE = /^!\[([^\]]*)\]\((\S+?)(?:\s+=(\d+)x)?\)$/;
 // Bukan sintaks markdown standar (tidak ada video embed di markdown), tapi
 // satu-satunya jalan membuatnya adalah tombol toolbar, jadi bentuknya bebas
 // kita tentukan sendiri.
@@ -73,7 +76,7 @@ export function parseMarkdown(src: string): Block[] {
     const bullets = lines.every((l) => /^\s*[-*]\s+/.test(l));
     const numbers = lines.every((l) => /^\s*\d+[.)]\s+/.test(l));
     if (img && IMAGE_SCHEME.test(img[2])) {
-      blocks.push({ t: "img", alt: img[1], src: img[2] });
+      blocks.push({ t: "img", alt: img[1], src: img[2], width: img[3] ? Number(img[3]) : undefined });
     } else if (yt && youtubeId(yt[1])) {
       blocks.push({ t: "youtube", id: youtubeId(yt[1])! });
     } else if (bullets) {

@@ -5,21 +5,25 @@ import Image from "next/image";
 import Link from "next/link";
 import Icon from "@/components/Icon";
 
-export function PageHeader({ icon, title, subtitle }: {
+export function PageHeader({ icon, title, subtitle, action }: {
   icon?: string;
   title: string;
   subtitle?: string;
+  action?: React.ReactNode;
 }) {
   return (
     <header className="mb-space-lg">
-      <h1 className="t-headline-lg text-text-primary flex items-center gap-space-sm">
-        {icon && (
-          <span className="w-10 h-10 rounded-xl bg-ocean-subtle text-primary-container grid place-items-center shrink-0">
-            <Icon name={icon} className="text-[22px]" />
-          </span>
-        )}
-        {title}
-      </h1>
+      <div className="flex items-center justify-between gap-space-sm">
+        <h1 className="t-headline-lg text-text-primary flex items-center gap-space-sm min-w-0">
+          {icon && (
+            <span className="w-10 h-10 rounded-xl bg-ocean-subtle text-primary-container grid place-items-center shrink-0">
+              <Icon name={icon} className="text-[22px]" />
+            </span>
+          )}
+          <span className="truncate">{title}</span>
+        </h1>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
       {subtitle && (
         <p className="t-body text-text-muted mt-space-sm max-w-prose">{subtitle}</p>
       )}

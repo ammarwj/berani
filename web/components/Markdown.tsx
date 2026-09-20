@@ -35,7 +35,15 @@ export default function Markdown({ source, className = "" }: { source: string; c
         if (b.t === "h") return <h2 key={i} className="t-title text-text-primary mt-2"><Spans nodes={b.children} /></h2>;
         if (b.t === "img")
           // eslint-disable-next-line @next/next/no-img-element -- URL eksternal guru, bukan aset lokal yang bisa dioptimalkan next/image
-          return <img key={i} src={b.src} alt={b.alt} className="rounded-xl max-w-full" />;
+          return (
+            <img
+              key={i}
+              src={b.src}
+              alt={b.alt}
+              className="rounded-xl max-w-full"
+              style={b.width ? { width: b.width, height: "auto" } : undefined}
+            />
+          );
         if (b.t === "youtube")
           return (
             <div key={i} className="aspect-video rounded-xl overflow-hidden">

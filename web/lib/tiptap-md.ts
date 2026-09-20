@@ -38,7 +38,7 @@ export function toDoc(md: string): Doc {
       return { type: "heading", attrs: { level: 2 }, content: b.children.map(text) };
     if (b.t === "ul") return { type: "bulletList", content: b.items.map(item) };
     if (b.t === "ol") return { type: "orderedList", content: b.items.map(item) };
-    if (b.t === "img") return { type: "image", attrs: { src: b.src, alt: b.alt } };
+    if (b.t === "img") return { type: "image", attrs: { src: b.src, alt: b.alt, width: b.width ?? null } };
     if (b.t === "youtube")
       return { type: "youtube", attrs: { src: `https://www.youtube.com/watch?v=${b.id}` } };
     return para(b.children.map(text));
@@ -75,7 +75,8 @@ export function toMarkdown(doc: Doc): string {
     if (b.type === "heading") out.push(`## ${inline(b.content)}`);
     else if (b.type === "image") {
       const src = b.attrs?.src as string | undefined;
-      if (src) out.push(`![${(b.attrs?.alt as string) ?? ""}](${src})`);
+      const width = b.attrs?.width as number | null | undefined;
+      if (src) out.push(`![${(b.attrs?.alt as string) ?? ""}](${src}${width ? ` =${width}x` : ""})`);
     } else if (b.type === "youtube") {
       const id = youtubeId((b.attrs?.src as string) ?? "");
       if (id) out.push(`[youtube](https://www.youtube.com/watch?v=${id})`);

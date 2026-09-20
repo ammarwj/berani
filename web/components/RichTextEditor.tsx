@@ -4,8 +4,8 @@ import { useState, type ChangeEvent } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
 import Youtube from "@tiptap/extension-youtube";
+import { ResizableImage } from "@/components/tiptap-resizable-image";
 import { toDoc, toMarkdown, type Doc } from "@/lib/tiptap-md";
 import { youtubeId } from "@/lib/markdown";
 import { api, API_URL } from "@/lib/api";
@@ -103,7 +103,7 @@ export default function RichTextEditor({
         isAllowedUri: (url) => SAFE_SCHEME.test(url),
         HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
       }),
-      Image.configure({ HTMLAttributes: { class: "rounded-xl max-w-full" } }),
+      ResizableImage.configure({ HTMLAttributes: { class: "rounded-xl" } }),
       Youtube.configure({ nocookie: true, HTMLAttributes: { class: "rounded-xl" } }),
     ],
     content: toDoc(value),
