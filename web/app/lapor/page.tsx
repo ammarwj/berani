@@ -16,6 +16,7 @@ const MAX_FILE = 10 * 1024 * 1024;
 
 export default function LaporPage() {
   const [authed, setAuthed] = useState<boolean | null>(null);
+  const [name, setName] = useState("");
   const [settings, setSettings] = useState<Settings | null>(null);
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
@@ -31,7 +32,13 @@ export default function LaporPage() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    setAuthed(isLoggedIn());
+    const loggedIn = isLoggedIn();
+    setAuthed(loggedIn);
+    if (loggedIn) {
+      api<{ name: string }>("/auth/me")
+        .then((me) => setName(me.name))
+        .catch(() => {});
+    }
     api<Settings>("/settings")
       .then((s) => {
         setSettings(s);
@@ -223,7 +230,9 @@ export default function LaporPage() {
                 <p className="t-body-sm text-text-muted">
                   {anonymous
                     ? "Namamu disembunyikan — tidak ada siswa lain yang bisa melihatnya."
-                    : "Laporan dikirim dengan namamu tertera seperti biasa."}
+                    : name
+                      ? <>Laporan dikirim dengan nama <strong>{name}</strong> tertera seperti biasa.</>
+                      : "Laporan dikirim dengan namamu tertera seperti biasa."}
                 </p>
               </div>
               <button
@@ -248,7 +257,8 @@ export default function LaporPage() {
               <p className="flex gap-space-xs t-body-sm text-primary bg-ocean-subtle rounded-xl px-3 py-2.5 mt-space-sm">
                 <Icon name="key" className="text-[18px] shrink-0" />
                 <span>
-                  Namamu <strong>tidak terlihat siswa lain</strong>.
+                  Namamu <strong>tidak terlihat siswa lain</strong>
+                  {name && <> — kamu melapor sebagai <strong>{name}</strong>. Guru pendamping tetap bisa melihat nama ini untuk menindaklanjuti laporanmu</>}.
                 </span>
               </p>
             )}

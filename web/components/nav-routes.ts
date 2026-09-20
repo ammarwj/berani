@@ -26,6 +26,7 @@ const ADMIN_NAV = [
   { href: "/admin", label: "Laporan", icon: "shield_person" },
   { href: "/admin/materi", label: "Materi", icon: "menu_book" },
   { href: "/admin/skenario", label: "Skenario", icon: "psychology" },
+  { href: "/admin/siswa", label: "Siswa", icon: "groups" },
 ];
 
 const SUPER_NAV = [

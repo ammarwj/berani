@@ -39,12 +39,14 @@ export function Card({ children, className = "" }: {
 }
 
 export function Button({ children, variant = "primary", className = "", ...props }: {
-  variant?: "primary" | "outline";
+  variant?: "primary" | "outline" | "danger";
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const styles =
     variant === "primary"
       ? "bg-primary-container text-white hover:bg-primary"
-      : "border border-border-subtle bg-surface-card text-text-primary hover:border-primary-container";
+      : variant === "danger"
+        ? "bg-danger-rose text-white hover:bg-danger-rose/90"
+        : "border border-border-subtle bg-surface-card text-text-primary hover:border-primary-container";
   return (
     <button
       {...props}
@@ -187,6 +189,66 @@ export function Alert({ kind, children }: {
     <p role={kind === "error" ? "alert" : "status"} className={`border rounded-xl px-3.5 py-3 t-body ${styles}`}>
       {children}
     </p>
+  );
+}
+
+const STAT_TONES = {
+  rose: "bg-danger-subtle border-danger-rose/30 text-danger-rose",
+  amber: "bg-amber-subtle border-tertiary-container/30 text-tertiary",
+  mint: "bg-mint-subtle border-secondary/30 text-secondary",
+  ocean: "bg-ocean-subtle border-primary-container/30 text-primary",
+};
+
+export function StatTile({ icon, value, label, tone, href }: {
+  icon: string;
+  value: number | null;
+  label: string;
+  tone: keyof typeof STAT_TONES;
+  href?: string;
+}) {
+  const content = (
+    <>
+      <p className="t-display text-text-primary">{value ?? "—"}</p>
+      <p className="t-body-sm mt-space-xs inline-flex items-center gap-space-xs">
+        <Icon name={icon} className="text-[16px]" />
+        {label}
+      </p>
+    </>
+  );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`relative block rounded-2xl border p-space-md transition hover:brightness-95 ${STAT_TONES[tone]}`}
+      >
+        <Icon name="chevron_right" className="absolute top-space-sm right-space-sm text-[16px] opacity-60" />
+        {content}
+      </Link>
+    );
+  }
+  return <div className={`rounded-2xl border p-space-md ${STAT_TONES[tone]}`}>{content}</div>;
+}
+
+// Rasio selesai/total sebagai bar, bukan cuma pecahan teks — progress adalah inti
+// halaman ini, jadi harus kebaca sekilas tanpa hitung manual. total 0 (belum ada
+// materi/skenario diterbitkan) digambar kosong, bukan dibagi nol.
+export function ProgressBar({ value, total, tone }: {
+  value: number;
+  total: number;
+  tone: "primary" | "secondary";
+}) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  const fill = tone === "primary" ? "bg-primary-container" : "bg-secondary";
+  return (
+    <div
+      role="progressbar"
+      aria-valuenow={pct}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      className="h-1.5 rounded-full bg-surface-container-low overflow-hidden"
+    >
+      <div className={`h-full rounded-full ${fill} transition-[width]`} style={{ width: `${pct}%` }} />
+    </div>
   );
 }
 

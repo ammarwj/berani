@@ -9,6 +9,7 @@ import Icon from "@/components/Icon";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,7 +26,7 @@ export default function RegisterPage() {
     try {
       const session = await api<Session>("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, email, password }),
       });
       saveSession(session);
       router.push("/edukasi");
@@ -50,6 +51,18 @@ export default function RegisterPage() {
 
       <AuthCard>
         <form onSubmit={onSubmit} className="flex flex-col gap-space-md">
+          <Field label="Nama lengkap">
+            <input
+              type="text"
+              required
+              autoComplete="name"
+              placeholder="Nama sesuai identitas sekolah"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={inputClass}
+            />
+          </Field>
+
           <Field label="Email sekolah">
             <input
               type="email"

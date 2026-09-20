@@ -56,6 +56,21 @@ func (h *Handler) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, users)
 }
 
+// AdminActiveStudentCount cuma balikin angka, bukan daftar user: guru biasa
+// (bukan super admin) boleh lihat berapa siswa aktif untuk kartu statistik
+// dashboard, tapi manajemen user (daftar, ubah, nonaktifkan) tetap super admin saja.
+func (h *Handler) AdminActiveStudentCount(w http.ResponseWriter, r *http.Request) {
+	var count int
+	err := h.DB.QueryRow(r.Context(),
+		`SELECT count(*) FROM users WHERE role = 'siswa' AND is_active`,
+	).Scan(&count)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, map[string]int{"count": count})
+}
+
 func (h *Handler) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Email    string `json:"email"`

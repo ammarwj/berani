@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { api, isAdmin, isSuperAdmin } from "@/lib/api";
+import { api, isAdmin } from "@/lib/api";
 import {
   PageHeader,
   Card,
@@ -10,6 +10,7 @@ import {
   Alert,
   StatusBadge,
   UrgencyBadge,
+  StatTile,
   inputClass,
 } from "@/components/ui";
 import Icon from "@/components/Icon";
@@ -30,34 +31,6 @@ type Report = {
 
 const STATUSES = ["", "diterima", "diproses", "ditindaklanjuti", "selesai"];
 const PAGE_SIZE = 10;
-
-function StatTile({
-  icon,
-  value,
-  label,
-  tone,
-}: {
-  icon: string;
-  value: number | null;
-  label: string;
-  tone: "rose" | "amber" | "mint" | "ocean";
-}) {
-  const styles = {
-    rose: "bg-danger-subtle border-danger-rose/30 text-danger-rose",
-    amber: "bg-amber-subtle border-tertiary-container/30 text-tertiary",
-    mint: "bg-mint-subtle border-secondary/30 text-secondary",
-    ocean: "bg-ocean-subtle border-primary-container/30 text-primary",
-  }[tone];
-  return (
-    <div className={`rounded-2xl border p-space-md ${styles}`}>
-      <p className="t-display text-text-primary">{value ?? "—"}</p>
-      <p className="t-body-sm mt-space-xs inline-flex items-center gap-space-xs">
-        <Icon name={icon} className="text-[16px]" />
-        {label}
-      </p>
-    </div>
-  );
-}
 
 export default function AdminPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -91,13 +64,9 @@ export default function AdminPage() {
     api<Report[]>("/admin/reports")
       .then(setAllReports)
       .catch(() => {});
-    if (isSuperAdmin()) {
-      api<{ is_active: boolean }[]>("/admin/users?role=siswa")
-        .then((users) =>
-          setActiveStudents(users.filter((u) => u.is_active).length),
-        )
-        .catch(() => {});
-    }
+    api<{ count: number }>("/admin/stats/active-students")
+      .then((s) => setActiveStudents(s.count))
+      .catch(() => {});
   }, [load]);
 
   const newCount = allReports.filter((r) => r.status === "diterima").length;
@@ -155,6 +124,7 @@ export default function AdminPage() {
           value={activeStudents}
           label="Siswa Aktif"
           tone="ocean"
+          href="/admin/siswa"
         />
       </div>
 

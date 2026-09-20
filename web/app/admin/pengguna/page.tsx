@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { api, isSuperAdmin } from "@/lib/api";
 import { PageHeader, Card, Button, Field, Alert, Empty, inputClass } from "@/components/ui";
+import Icon from "@/components/Icon";
 
 type User = {
   id: string;
@@ -33,6 +34,9 @@ export default function PenggunaPage() {
   const [showForm, setShowForm] = useState(false);
   const [draft, setDraft] = useState({ email: "", name: "", role: "siswa", password: "" });
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -66,6 +70,34 @@ export default function PenggunaPage() {
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memperbarui pengguna.");
+    }
+  }
+
+  function startEditName(u: User) {
+    setEditingId(u.id);
+    setNameDraft(u.name);
+    setError("");
+    setNotice("");
+  }
+
+  async function saveName(u: User) {
+    const name = nameDraft.trim();
+    if (!name || name === u.name) {
+      setEditingId(null);
+      return;
+    }
+    setSavingName(true);
+    setError("");
+    setNotice("");
+    try {
+      await api(`/admin/users/${u.id}`, { method: "PATCH", body: JSON.stringify({ name }) });
+      setNotice("Nama diperbarui.");
+      setEditingId(null);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal memperbarui nama.");
+    } finally {
+      setSavingName(false);
     }
   }
 
@@ -241,8 +273,53 @@ export default function PenggunaPage() {
                     </span>
                   )}
                 </div>
-                <p className="t-label text-text-primary">{u.name || u.email}</p>
-                {u.name && <p className="text-xs text-text-muted">{u.email}</p>}
+                {editingId === u.id ? (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <input
+                      autoFocus
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveName(u);
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      className={`${inputClass} min-h-9 py-1.5 max-w-56`}
+                      aria-label={`Nama untuk ${u.email}`}
+                      placeholder="Tanpa nama"
+                    />
+                    <button
+                      type="button"
+                      aria-label="Simpan nama"
+                      disabled={savingName}
+                      onClick={() => saveName(u)}
+                      className="w-9 h-9 shrink-0 grid place-items-center rounded-lg text-secondary hover:bg-mint-subtle disabled:opacity-50"
+                    >
+                      <Icon name="check" className="text-[20px]" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Batal ubah nama"
+                      disabled={savingName}
+                      onClick={() => setEditingId(null)}
+                      className="w-9 h-9 shrink-0 grid place-items-center rounded-lg text-text-muted hover:bg-surface-container-low disabled:opacity-50"
+                    >
+                      <Icon name="close" className="text-[20px]" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => startEditName(u)}
+                    className="group flex items-center gap-1.5 mt-1 -ml-1 px-1 py-0.5 rounded-lg hover:bg-surface-container-low"
+                  >
+                    <span className="t-label text-text-primary">{u.name || "Tanpa nama"}</span>
+                    <Icon
+                      name="edit"
+                      className="text-[15px] text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                    />
+                  </button>
+                )}
+                <p className="text-xs text-text-muted">{u.email}</p>
 
                 <div className="flex items-center gap-2 flex-wrap mt-3">
                   <select

@@ -383,6 +383,52 @@ func (h *Handler) AdminUpdate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// AdminDelete permanently removes a report — super_admin only (router.go),
+// unlike status changes which any guru_admin can make. report_tickets,
+// report_attachments and report_notes all ON DELETE CASCADE from reports.id,
+// so the DB side is one statement; R2 objects don't cascade, so attachments are
+// fetched and deleted from storage first.
+func (h *Handler) AdminDelete(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	if h.Storage != nil {
+		rows, err := h.DB.Query(r.Context(),
+			`SELECT object_key FROM report_attachments WHERE report_id = $1`, id)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		var keys []string
+		for rows.Next() {
+			var key string
+			if err := rows.Scan(&key); err != nil {
+				rows.Close()
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+			keys = append(keys, key)
+		}
+		rows.Close()
+		for _, key := range keys {
+			if err := h.Storage.Delete(r.Context(), key); err != nil {
+				http.Error(w, "gagal menghapus lampiran", http.StatusBadGateway)
+				return
+			}
+		}
+	}
+
+	tag, err := h.DB.Exec(r.Context(), `DELETE FROM reports WHERE id = $1`, id)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "laporan tidak ditemukan", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 type attachment struct {
 	Filename    string `json:"filename"`
 	URL         string `json:"url"`

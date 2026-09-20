@@ -112,10 +112,12 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /admin/education/modules/{id}", admin(eduH.AdminGet))
 	mux.Handle("PATCH /admin/education/modules/{id}", admin(eduH.AdminUpdate))
 	mux.Handle("POST /admin/education/uploads", admin(eduH.UploadImage))
+	mux.Handle("GET /admin/progress", admin(eduH.AdminStudentProgress))
 	mux.Handle("GET /admin/training/scenarios", admin(trainH.AdminList))
 	mux.Handle("POST /admin/training/scenarios", admin(trainH.AdminCreate))
 	mux.Handle("GET /admin/training/scenarios/{id}", admin(trainH.AdminGet))
 	mux.Handle("PATCH /admin/training/scenarios/{id}", admin(trainH.AdminUpdate))
+	mux.Handle("GET /admin/stats/active-students", admin(authH.AdminActiveStudentCount))
 
 	superAdmin := func(h http.HandlerFunc) http.Handler {
 		return requireAuth(middleware.RequireRole("super_admin")(h))
@@ -128,6 +130,10 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("POST /admin/users", superAdmin(authH.AdminCreateUser))
 	mux.Handle("PATCH /admin/users/{id}", superAdmin(authH.AdminUpdateUser))
 	mux.Handle("POST /admin/users/{id}/reset-password", superAdmin(authH.AdminResetPassword))
+	// Hard delete, bukan arsip: beda dari materi/skenario/user karena laporan
+	// tidak diedit-ulang setelah selesai ditindaklanjuti — super_admin saja,
+	// bukan guru_admin, karena tidak reversibel.
+	mux.Handle("DELETE /admin/reports/{id}", superAdmin(reportH.AdminDelete))
 
 	return cors(d.Config.AppBaseURL, mux)
 }

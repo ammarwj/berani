@@ -102,6 +102,19 @@ func (s *Storage) Get(ctx context.Context, key string) (io.ReadCloser, string, e
 	return out.Body, ct, nil
 }
 
+// Delete removes an object. Used when the DB row referencing it is deleted for
+// good (e.g. report deletion) — R2 objects are never cascaded by Postgres.
+func (s *Storage) Delete(ctx context.Context, key string) error {
+	if s == nil {
+		return ErrNotConfigured
+	}
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+	})
+	return err
+}
+
 // Bucket reports the configured bucket name, for diagnostics.
 func (s *Storage) Bucket() string {
 	if s == nil {

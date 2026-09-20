@@ -2,7 +2,8 @@
 
 import { use, useCallback, useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
-import { api, isAdmin } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { api, isAdmin, isSuperAdmin } from "@/lib/api";
 import {
   PageHeader,
   Card,
@@ -14,6 +15,17 @@ import {
   UrgencyBadge,
   inputClass,
 } from "@/components/ui";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import Icon from "@/components/Icon";
 import AttachmentViewer, { type Attachment } from "@/components/AttachmentViewer";
 
@@ -38,6 +50,7 @@ const STATUSES = ["diterima", "diproses", "ditindaklanjuti", "selesai"];
 
 export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
   const { id } = use(params);
+  const router = useRouter();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [report, setReport] = useState<Detail | null>(null);
   const [status, setStatus] = useState("");
@@ -45,6 +58,7 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(() => {
     api<Detail>(`/admin/reports/${id}`)
@@ -78,6 +92,18 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
       setError("Gagal memperbarui laporan.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function onDelete() {
+    setDeleting(true);
+    setError("");
+    try {
+      await api(`/admin/reports/${id}`, { method: "DELETE" });
+      router.push("/admin");
+    } catch {
+      setError("Gagal menghapus laporan.");
+      setDeleting(false);
     }
   }
 
@@ -244,6 +270,36 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
             </li>
           ))}
         </ul>
+      )}
+
+      {isSuperAdmin() && (
+        <Card className="mt-5 border-danger-rose/30">
+          <h2 className="text-sm font-semibold mb-1 text-danger-rose">Zona berbahaya</h2>
+          <p className="text-sm text-text-muted mb-3">
+            Menghapus laporan ini bersifat permanen — riwayat penanganan dan
+            lampiran ikut hilang.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button type="button" variant="danger" disabled={deleting}>
+                {deleting ? "Menghapus…" : "Hapus laporan"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Hapus laporan ini?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tindakan ini tidak bisa dibatalkan. Riwayat penanganan dan
+                  lampiran ikut terhapus permanen.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete}>Hapus</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </Card>
       )}
     </main>
   );

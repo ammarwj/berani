@@ -51,6 +51,69 @@ func (h *Handler) AdminList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, modules)
 }
 
+type studentProgress struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	Email          string `json:"email"`
+	IsActive       bool   `json:"is_active"`
+	EduCompleted   int    `json:"edu_completed"`
+	EduTotal       int    `json:"edu_total"`
+	TrainAttempted int    `json:"train_attempted"`
+	TrainTotal     int    `json:"train_total"`
+	TrainBest      int    `json:"train_best"`
+	Badge          string `json:"badge"`
+}
+
+// AdminStudentProgress powers the teacher/admin monitoring view: how far each
+// student has gotten through materi & latihan. Totals come from one query
+// (same for every row) so a module archived mid-list doesn't move the goalposts
+// between students, matching Progress's own numerator/denominator rule.
+func (h *Handler) AdminStudentProgress(w http.ResponseWriter, r *http.Request) {
+	var eduTotal, trainTotal int
+	err := h.DB.QueryRow(r.Context(), `
+		SELECT (SELECT count(*) FROM education_modules WHERE published),
+		       (SELECT count(*) FROM training_scenarios WHERE published)`,
+	).Scan(&eduTotal, &trainTotal)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	rows, err := h.DB.Query(r.Context(), `
+		SELECT u.id, u.name, u.email, u.is_active,
+		       count(DISTINCT ep.module_id) FILTER (WHERE ep.completed_at IS NOT NULL) AS edu_completed,
+		       count(DISTINCT ta.scenario_id) AS train_attempted,
+		       count(DISTINCT ta.scenario_id) FILTER (WHERE ta.score = 1) AS train_best
+		FROM users u
+		LEFT JOIN education_progress ep ON ep.user_id = u.id
+		  AND ep.module_id IN (SELECT id FROM education_modules WHERE published)
+		LEFT JOIN training_attempts ta ON ta.user_id = u.id
+		  AND ta.scenario_id IN (SELECT id FROM training_scenarios WHERE published)
+		WHERE u.role = 'siswa'
+		GROUP BY u.id
+		ORDER BY u.name`)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	students := []studentProgress{}
+	for rows.Next() {
+		var s studentProgress
+		if err := rows.Scan(&s.ID, &s.Name, &s.Email, &s.IsActive,
+			&s.EduCompleted, &s.TrainAttempted, &s.TrainBest); err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		s.EduTotal = eduTotal
+		s.TrainTotal = trainTotal
+		s.Badge = badgeFor(s.EduCompleted, s.EduTotal)
+		students = append(students, s)
+	}
+	writeJSON(w, students)
+}
+
 func (h *Handler) AdminGet(w http.ResponseWriter, r *http.Request) {
 	var m adminModule
 	err := h.DB.QueryRow(r.Context(), `

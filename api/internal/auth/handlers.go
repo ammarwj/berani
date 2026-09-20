@@ -27,6 +27,7 @@ type Handler struct {
 type credentials struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	Name     string `json:"name"`
 }
 
 type tokenResponse struct {
@@ -50,6 +51,11 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "password minimal 8 karakter", http.StatusBadRequest)
 		return
 	}
+	c.Name = strings.TrimSpace(c.Name)
+	if c.Name == "" {
+		http.Error(w, "nama wajib diisi", http.StatusBadRequest)
+		return
+	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(c.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -59,8 +65,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	var userID, role string
 	err = h.DB.QueryRow(r.Context(),
-		`INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, role`,
-		c.Email, string(hash),
+		`INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, role`,
+		c.Email, string(hash), c.Name,
 	).Scan(&userID, &role)
 	if err != nil {
 		http.Error(w, "email sudah terdaftar", http.StatusConflict)
@@ -142,17 +148,17 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	userID := UserID(r)
 
-	var email, role string
+	var email, role, name string
 	var verified bool
 	err := h.DB.QueryRow(r.Context(),
-		`SELECT email, role, email_verified FROM users WHERE id = $1`, userID,
-	).Scan(&email, &role, &verified)
+		`SELECT email, role, email_verified, name FROM users WHERE id = $1`, userID,
+	).Scan(&email, &role, &verified, &name)
 	if err != nil {
 		http.Error(w, "tidak ditemukan", http.StatusNotFound)
 		return
 	}
 
-	writeJSON(w, map[string]any{"email": email, "role": role, "email_verified": verified})
+	writeJSON(w, map[string]any{"email": email, "role": role, "email_verified": verified, "name": name})
 }
 
 func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
