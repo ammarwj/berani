@@ -146,3 +146,48 @@ func validateOptions(opts []option) error {
 	}
 	return nil
 }
+
+// AdminDeleteScenario menghapus permanen. Pasangan dari arsip
+// (PATCH {"published": false}), yang tetap jalur default di UI karena
+// training_attempts.scenario_id ON DELETE CASCADE (0001_init.sql:48): percobaan
+// siswa ikut hangus, termasuk skornya, dan tidak ada salinannya.
+//
+// Tidak ada objek R2 yang perlu dibersihkan — beda dari materi, skenario hanya
+// teks. Guru pendamping ikut boleh (router.go), sama seperti create/update.
+func (h *Handler) AdminDeleteScenario(w http.ResponseWriter, r *http.Request) {
+	tag, err := h.DB.Exec(r.Context(),
+		`DELETE FROM training_scenarios WHERE id = $1`, r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "skenario tidak ditemukan", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type scenarioFootprint struct {
+	Attempts int `json:"attempts"`
+	Students int `json:"students"`
+}
+
+// AdminScenarioFootprint melaporkan apa yang akan hangus, supaya dialog
+// konfirmasi menyebut angka sebenarnya alih-alih peringatan umum. Attempts dan
+// students dihitung terpisah: training_attempts tidak punya unique constraint
+// per (user, scenario), jadi satu siswa bisa mencoba berkali-kali dan jumlah
+// baris bukan jumlah siswa.
+func (h *Handler) AdminScenarioFootprint(w http.ResponseWriter, r *http.Request) {
+	var f scenarioFootprint
+	err := h.DB.QueryRow(r.Context(), `
+		SELECT (SELECT count(*) FROM training_attempts WHERE scenario_id = s.id),
+		       (SELECT count(DISTINCT user_id) FROM training_attempts WHERE scenario_id = s.id)
+		FROM training_scenarios s WHERE s.id = $1`, r.PathValue("id"),
+	).Scan(&f.Attempts, &f.Students)
+	if err != nil {
+		http.Error(w, "skenario tidak ditemukan", http.StatusNotFound)
+		return
+	}
+	writeJSON(w, f)
+}

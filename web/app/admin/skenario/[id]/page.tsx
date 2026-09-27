@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { api, isAdmin } from "@/lib/api";
 import { PageHeader, Card, Button, Field, Alert, Empty, inputClass } from "@/components/ui";
+import DeleteContentDialog from "@/components/DeleteContentDialog";
+import { type ScenarioFootprint, describeScenario } from "@/lib/footprint";
 
 type Option = { label: string; feedback: string; is_best: boolean };
 type Scenario = {
@@ -37,6 +39,7 @@ export default function SkenarioEditorPage({ params }: PageProps<"/admin/skenari
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
 
   useEffect(() => {
     const ok = isAdmin();
@@ -218,6 +221,41 @@ export default function SkenarioEditorPage({ params }: PageProps<"/admin/skenari
           {saving ? "Menyimpan…" : "Simpan skenario"}
         </Button>
       </form>
+
+      {/* Hanya untuk skenario yang sudah tersimpan — di "baru" belum ada yang bisa
+          dihapus. Dipisah dari form supaya tombolnya tidak ikut men-submit, dan
+          diletakkan jauh di bawah tombol simpan: hapus permanen bukan aksi yang
+          pantas bersebelahan dengan aksi yang dipakai tiap hari. */}
+      {!isNew && (
+        <div className="mt-space-lg pt-space-md border-t border-border-subtle">
+          <p className="t-label text-text-primary mb-1">Hapus skenario</p>
+          <p className="t-body-sm text-text-muted mb-space-sm">
+            Menghapus juga memusnahkan percobaan siswa pada skenario ini. Untuk menyembunyikannya
+            dari siswa tanpa kehilangan apa pun, hilangkan centang &ldquo;Terbitkan untuk
+            siswa&rdquo; di atas.
+          </p>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={() => setConfirmDel(true)}
+            className="flex items-center gap-space-xs"
+          >
+            <Icon name="delete" className="text-[20px]" />
+            Hapus skenario permanen
+          </Button>
+        </div>
+      )}
+
+      <DeleteContentDialog<ScenarioFootprint>
+        target={confirmDel ? { id, title: s.prompt, subtitle: s.category } : null}
+        onClose={() => setConfirmDel(false)}
+        endpoint="/admin/training/scenarios"
+        label="skenario"
+        describe={describeScenario}
+        // Skenarionya sudah tidak ada, jadi halaman editornya pun tidak. Kembali
+        // ke daftar daripada membiarkan form menampilkan isi yang sudah terhapus.
+        onDeleted={() => router.replace("/admin/skenario")}
+      />
     </main>
   );
 }

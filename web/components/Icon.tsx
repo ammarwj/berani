@@ -15,6 +15,7 @@ export const ICON_NAMES = [
   "chevron_right",
   "close",
   "content_copy",
+  "delete",
   "devices",
   "download",
   "edit_note",

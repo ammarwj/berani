@@ -104,19 +104,24 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /admin/reports/{id}", admin(reportH.AdminDetail))
 	mux.Handle("PATCH /admin/reports/{id}", admin(reportH.AdminUpdate))
 
-	// Guru dan admin sama-sama penuh atas materi & skenario. Tidak ada route
-	// DELETE: arsip adalah PATCH {"published": false} supaya progres siswa
-	// (ON DELETE CASCADE) tidak ikut hangus.
+	// Guru dan admin sama-sama penuh atas materi & skenario. Arsip
+	// (PATCH {"published": false}) tetap jalur default; DELETE ada untuk materi
+	// salah-buat, dan menghanguskan education_progress/training_attempts-nya —
+	// lihat education.AdminDeleteModule dan training.AdminDeleteScenario.
 	mux.Handle("GET /admin/education/modules", admin(eduH.AdminList))
 	mux.Handle("POST /admin/education/modules", admin(eduH.AdminCreate))
 	mux.Handle("GET /admin/education/modules/{id}", admin(eduH.AdminGet))
 	mux.Handle("PATCH /admin/education/modules/{id}", admin(eduH.AdminUpdate))
+	mux.Handle("GET /admin/education/modules/{id}/footprint", admin(eduH.AdminModuleFootprint))
+	mux.Handle("DELETE /admin/education/modules/{id}", admin(eduH.AdminDeleteModule))
 	mux.Handle("POST /admin/education/uploads", admin(eduH.UploadImage))
 	mux.Handle("GET /admin/progress", admin(eduH.AdminStudentProgress))
 	mux.Handle("GET /admin/training/scenarios", admin(trainH.AdminList))
 	mux.Handle("POST /admin/training/scenarios", admin(trainH.AdminCreate))
 	mux.Handle("GET /admin/training/scenarios/{id}", admin(trainH.AdminGet))
 	mux.Handle("PATCH /admin/training/scenarios/{id}", admin(trainH.AdminUpdate))
+	mux.Handle("GET /admin/training/scenarios/{id}/footprint", admin(trainH.AdminScenarioFootprint))
+	mux.Handle("DELETE /admin/training/scenarios/{id}", admin(trainH.AdminDeleteScenario))
 	mux.Handle("GET /admin/stats/active-students", admin(authH.AdminActiveStudentCount))
 
 	superAdmin := func(h http.HandlerFunc) http.Handler {
@@ -130,6 +135,10 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("POST /admin/users", superAdmin(authH.AdminCreateUser))
 	mux.Handle("PATCH /admin/users/{id}", superAdmin(authH.AdminUpdateUser))
 	mux.Handle("POST /admin/users/{id}/reset-password", superAdmin(authH.AdminResetPassword))
+	mux.Handle("GET /admin/users/{id}/footprint", superAdmin(authH.AdminUserFootprint))
+	// Satu-satunya DELETE atas user, dan hanya untuk role 'siswa': lihat
+	// AdminDeleteUser soal kenapa staf tetap harus dinonaktifkan, bukan dihapus.
+	mux.Handle("DELETE /admin/users/{id}", superAdmin(authH.AdminDeleteUser))
 	// Hard delete, bukan arsip: beda dari materi/skenario/user karena laporan
 	// tidak diedit-ulang setelah selesai ditindaklanjuti — super_admin saja,
 	// bukan guru_admin, karena tidak reversibel.

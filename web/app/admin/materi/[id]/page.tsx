@@ -8,6 +8,8 @@ import { api, isAdmin } from "@/lib/api";
 import { removeOption, type Q } from "@/lib/quiz";
 import RichTextEditor from "@/components/RichTextEditor";
 import { PageHeader, Card, Button, Field, Alert, Empty, inputClass } from "@/components/ui";
+import DeleteContentDialog from "@/components/DeleteContentDialog";
+import { type ModuleFootprint, describeModule } from "@/lib/footprint";
 
 type Module = {
   title: string;
@@ -45,6 +47,7 @@ export default function MateriEditorPage({ params }: PageProps<"/admin/materi/[i
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
 
   useEffect(() => {
     const ok = isAdmin();
@@ -268,6 +271,41 @@ export default function MateriEditorPage({ params }: PageProps<"/admin/materi/[i
           {saving ? "Menyimpan…" : "Simpan materi"}
         </Button>
       </form>
+
+      {/* Hanya untuk materi yang sudah tersimpan — di "baru" belum ada yang bisa
+          dihapus. Dipisah dari form supaya tombolnya tidak ikut men-submit, dan
+          diletakkan jauh di bawah tombol simpan: hapus permanen bukan aksi yang
+          pantas bersebelahan dengan aksi yang dipakai tiap hari. */}
+      {!isNew && (
+        <div className="mt-space-lg pt-space-md border-t border-border-subtle">
+          <p className="t-label text-text-primary mb-1">Hapus materi</p>
+          <p className="t-body-sm text-text-muted mb-space-sm">
+            Menghapus juga memusnahkan progres siswa pada materi ini. Untuk menyembunyikannya dari
+            siswa tanpa kehilangan apa pun, hilangkan centang &ldquo;Terbitkan untuk siswa&rdquo; di
+            atas.
+          </p>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={() => setConfirmDel(true)}
+            className="flex items-center gap-space-xs"
+          >
+            <Icon name="delete" className="text-[20px]" />
+            Hapus materi permanen
+          </Button>
+        </div>
+      )}
+
+      <DeleteContentDialog<ModuleFootprint>
+        target={confirmDel ? { id, title: m.title, subtitle: m.category } : null}
+        onClose={() => setConfirmDel(false)}
+        endpoint="/admin/education/modules"
+        label="materi"
+        describe={describeModule}
+        // Materinya sudah tidak ada, jadi halaman editornya pun tidak. Kembali ke
+        // daftar daripada membiarkan form menampilkan isi yang sudah terhapus.
+        onDeleted={() => router.replace("/admin/materi")}
+      />
     </main>
   );
 }

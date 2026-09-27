@@ -34,6 +34,17 @@ type User = {
   email_verified: boolean;
 };
 
+// Apa yang akan hangus kalau akun dihapus. Diambil saat dialog dibuka, bukan
+// saat daftar dimuat: lima count() per baris tidak sepadan untuk angka yang
+// hanya dibaca kalau super admin benar-benar membuka konfirmasi hapus.
+type Footprint = {
+  role: string;
+  reflections: number;
+  modules: number;
+  training_attempts: number;
+  reports: number;
+};
+
 const ROLES = [
   { value: "siswa", label: "Siswa" },
   { value: "guru_admin", label: "Guru pendamping" },
@@ -59,6 +70,10 @@ export default function PenggunaPage() {
   const [nameDraft, setNameDraft] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [page, setPage] = useState(1);
+
+  const [delTarget, setDelTarget] = useState<User | null>(null);
+  const [footprint, setFootprint] = useState<Footprint | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -135,6 +150,33 @@ export default function PenggunaPage() {
     }
   }
 
+  function askDelete(u: User) {
+    setError("");
+    setNotice("");
+    setFootprint(null);
+    setDelTarget(u);
+    api<Footprint>(`/admin/users/${u.id}/footprint`)
+      .then(setFootprint)
+      .catch(() => {});
+  }
+
+  async function confirmDelete() {
+    if (!delTarget) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await api(`/admin/users/${delTarget.id}`, { method: "DELETE" });
+      setNotice(`Akun ${delTarget.email} dihapus permanen.`);
+      setDelTarget(null);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menghapus akun.");
+      setDelTarget(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function createUser(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -176,7 +218,7 @@ export default function PenggunaPage() {
         <PageHeader
           icon="manage_accounts"
           title="Pengguna"
-          subtitle="Akun dinonaktifkan, tidak dihapus — refleksi, progres belajar, dan catatan tindak lanjut tetap utuh."
+          subtitle="Nonaktifkan untuk mencabut akses tanpa kehilangan apa pun. Hapus permanen hanya tersedia untuk akun siswa, dan memusnahkan jurnal refleksinya."
           action={
             <DialogTrigger asChild>
               <Button type="button" variant="outline" className="inline-flex items-center gap-1.5">
@@ -425,6 +467,20 @@ export default function PenggunaPage() {
                           <Icon name="verified_user" className="text-[20px]" />
                         </button>
                       )}
+                      {/* Hapus permanen: hanya siswa. Staf punya report_notes yang
+                          ON DELETE CASCADE — menghapusnya menghanguskan catatan
+                          tindak lanjut di laporan siswa lain, dan server menolaknya. */}
+                      {!self && u.role === "siswa" && (
+                        <button
+                          type="button"
+                          title="Hapus akun permanen"
+                          aria-label={`Hapus permanen akun ${u.email}`}
+                          onClick={() => askDelete(u)}
+                          className="w-9 h-9 shrink-0 grid place-items-center rounded-lg text-text-muted hover:bg-danger-subtle hover:text-danger-rose transition"
+                        >
+                          <Icon name="delete" className="text-[20px]" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   {self && (
@@ -464,6 +520,71 @@ export default function PenggunaPage() {
             </button>
           </div>
         )}
+
+        {/* Dialog hapus dipegang di level halaman, bukan per baris: konfirmasinya
+            butuh footprint yang di-fetch async, dan state itu tidak boleh ikut
+            hilang saat load() mengganti array users. */}
+        <AlertDialog
+          open={delTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setDelTarget(null);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus akun ini permanen?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tindakan ini tidak bisa dibatalkan dan tidak ada cara memulihkan datanya.
+                Kalau yang kamu butuhkan cuma mencabut akses, nonaktifkan akunnya.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="mt-space-sm flex flex-col gap-space-sm">
+              <p className="t-body-sm text-text-primary break-words">
+                <span className="t-label">{delTarget?.name || "Tanpa nama"}</span>{" "}
+                <span className="text-text-muted">({delTarget?.email})</span>
+              </p>
+
+              {footprint === null ? (
+                <p className="t-body-sm text-text-muted">Menghitung data yang akan hilang…</p>
+              ) : (
+                <div className="rounded-xl bg-danger-subtle p-space-sm flex flex-col gap-1">
+                  <p className="t-label-md text-danger-rose">Yang hilang permanen:</p>
+                  <ul className="t-body-sm text-text-primary list-disc pl-5">
+                    <li>
+                      {footprint.reflections} jurnal refleksi — terenkripsi, tidak ada salinan
+                    </li>
+                    <li>{footprint.modules} materi selesai &amp; badge</li>
+                    <li>{footprint.training_attempts} percobaan latihan</li>
+                  </ul>
+                  {footprint.reports > 0 && (
+                    <p className="t-body-sm text-text-primary mt-1">
+                      {footprint.reports} laporannya <span className="t-label">tetap ada</span> dan
+                      masih bisa ditindaklanjuti, tapi pelapornya tidak lagi terlacak — dashboard
+                      akan menampilkannya &ldquo;Identitas tidak tersimpan&rdquo;, jadi guru
+                      pendamping kehilangan cara menghubungi siswa yang bersangkutan.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={deleting}
+                onClick={(e) => {
+                  // Radix menutup dialog pada klik Action; di sini penutupan diurus
+                  // confirmDelete supaya dialog tidak lenyap sebelum request selesai.
+                  e.preventDefault();
+                  confirmDelete();
+                }}
+              >
+                {deleting ? "Menghapus…" : "Hapus permanen"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </Dialog>
   );

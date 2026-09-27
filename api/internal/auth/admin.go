@@ -188,3 +188,72 @@ func (h *Handler) AdminResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// AdminDeleteUser menghapus permanen — super_admin saja (router.go), dan hanya
+// role 'siswa'.
+//
+// Dua batasan yang bukan kenyamanan UI melainkan syarat integritas:
+//
+//   - Hanya siswa. report_notes.author_id ON DELETE CASCADE (0002_features.sql:32),
+//     jadi menghapus guru_admin/super_admin ikut menghanguskan seluruh catatan
+//     tindak lanjut yang pernah ia tulis di laporan siswa lain — jejak audit orang
+//     lain, bukan datanya sendiri. Untuk staf: PATCH {"is_active": false}.
+//   - Tidak bisa menghapus diri sendiri, sama seperti AdminUpdateUser.
+//
+// Yang hangus: reflections, education_progress, training_attempts,
+// witness_answers, auth_tokens (semua CASCADE). Yang bertahan: laporannya —
+// reports.user_id ON DELETE SET NULL (0001_init.sql:56), jadi laporan tetap bisa
+// ditindaklanjuti tapi pelapornya tidak lagi terlacak dan dashboard
+// menampilkannya "Identitas tidak tersimpan". Itu kebalikan dari yang diinginkan
+// revisi 0005, jadi UI wajib menyebut jumlah laporannya sebelum konfirmasi.
+func (h *Handler) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if UserID(r) == id {
+		http.Error(w, "tidak bisa menghapus akunmu sendiri", http.StatusBadRequest)
+		return
+	}
+
+	var role string
+	if err := h.DB.QueryRow(r.Context(), `SELECT role FROM users WHERE id = $1`, id).Scan(&role); err != nil {
+		http.Error(w, "pengguna tidak ditemukan", http.StatusNotFound)
+		return
+	}
+	if role != "siswa" {
+		http.Error(w, "hanya akun siswa yang bisa dihapus; nonaktifkan akun staf", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := h.DB.Exec(r.Context(), `DELETE FROM users WHERE id = $1`, id); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// AdminUserFootprint melaporkan apa yang akan hangus kalau akun ini dihapus,
+// supaya dialog konfirmasi menyebut angka sebenarnya alih-alih peringatan umum.
+// Dipanggil saat dialog dibuka, bukan saat daftar dimuat: enam count() per baris
+// akan membuat halaman daftar mahal tanpa alasan.
+func (h *Handler) AdminUserFootprint(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	var f struct {
+		Role        string `json:"role"`
+		Reflections int    `json:"reflections"`
+		Modules     int    `json:"modules"`
+		Attempts    int    `json:"training_attempts"`
+		Reports     int    `json:"reports"`
+	}
+	err := h.DB.QueryRow(r.Context(), `
+		SELECT u.role,
+		       (SELECT count(*) FROM reflections WHERE user_id = u.id),
+		       (SELECT count(*) FROM education_progress WHERE user_id = u.id AND completed_at IS NOT NULL),
+		       (SELECT count(*) FROM training_attempts WHERE user_id = u.id),
+		       (SELECT count(*) FROM reports WHERE user_id = u.id)
+		FROM users u WHERE u.id = $1`, id,
+	).Scan(&f.Role, &f.Reflections, &f.Modules, &f.Attempts, &f.Reports)
+	if err != nil {
+		http.Error(w, "pengguna tidak ditemukan", http.StatusNotFound)
+		return
+	}
+	writeJSON(w, f)
+}

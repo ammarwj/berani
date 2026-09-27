@@ -226,3 +226,97 @@ func validateQuiz(quiz []quizQuestion) error {
 	}
 	return nil
 }
+
+// AdminDeleteModule menghapus permanen — pasangan dari arsip (PATCH
+// {"published": false}), bukan penggantinya. Arsip tetap default di UI karena
+// yang hangus di sini tidak bisa dipulihkan:
+//
+//   - education_progress baris materi ini (ON DELETE CASCADE, 0001_init.sql:23),
+//     termasuk quiz_score siswa. Beda dari arsip, yang hanya menyembunyikan
+//     materi dan membiarkan progres kembali terhitung kalau diterbitkan lagi.
+//   - gambar isi materi di R2 — dihapus di sini karena tidak ada lagi baris yang
+//     merujuknya, jadi tidak akan pernah ada yang membersihkannya nanti.
+//
+// Guru pendamping ikut boleh (router.go), sama seperti create/update: materi
+// adalah kerja hariannya, dan yang hilang adalah progres materi itu saja —
+// bukan jejak audit orang lain seperti pada penghapusan akun staf.
+//
+// Gambar dihapus setelah baris DB hilang, dan kegagalannya tidak membatalkan
+// penghapusan: objek R2 yatim hanya memakan storage, sementara melaporkan gagal
+// setelah DELETE berhasil membuat admin mengulang pada materi yang sudah hilang.
+func (h *Handler) AdminDeleteModule(w http.ResponseWriter, r *http.Request) {
+	var body string
+	err := h.DB.QueryRow(r.Context(),
+		`DELETE FROM education_modules WHERE id = $1 RETURNING body`, r.PathValue("id")).Scan(&body)
+	if err == pgx.ErrNoRows {
+		http.Error(w, "materi tidak ditemukan", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	if h.Storage != nil {
+		for _, key := range uploadKeys(body) {
+			h.Storage.Delete(r.Context(), key)
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type moduleFootprint struct {
+	Completed int `json:"completed"`
+	Started   int `json:"started"`
+	Images    int `json:"images"`
+}
+
+// AdminModuleFootprint melaporkan apa yang akan hangus, supaya dialog
+// konfirmasi menyebut angka sebenarnya alih-alih peringatan umum. Dipanggil saat
+// dialog dibuka, bukan saat daftar dimuat: dua count() per baris tidak sepadan
+// untuk angka yang hanya dibaca kalau konfirmasi hapus benar-benar dibuka.
+func (h *Handler) AdminModuleFootprint(w http.ResponseWriter, r *http.Request) {
+	var f moduleFootprint
+	var body string
+	err := h.DB.QueryRow(r.Context(), `
+		SELECT m.body,
+		       (SELECT count(*) FROM education_progress
+		         WHERE module_id = m.id AND completed_at IS NOT NULL),
+		       (SELECT count(*) FROM education_progress WHERE module_id = m.id)
+		FROM education_modules m WHERE m.id = $1`, r.PathValue("id"),
+	).Scan(&body, &f.Completed, &f.Started)
+	if err != nil {
+		http.Error(w, "materi tidak ditemukan", http.StatusNotFound)
+		return
+	}
+	f.Images = len(uploadKeys(body))
+	writeJSON(w, f)
+}
+
+// uploadKeys memungut object key R2 dari gambar yang diunggah lewat UploadImage
+// — markdown `![alt](/uploads/materi/xxx)`, yang bisa membawa sufiks lebar
+// `=600x` (lib/tiptap-md.ts:79). URL gambar eksternal dilewati: bukan milik
+// bucket ini, dan Delete atas key asing tidak pernah benar.
+func uploadKeys(body string) []string {
+	const prefix = "](/uploads/materi/"
+	var keys []string
+	for {
+		i := strings.Index(body, prefix)
+		if i < 0 {
+			return keys
+		}
+		body = body[i+len(prefix):]
+		end := strings.IndexByte(body, ')')
+		if end < 0 {
+			return keys
+		}
+		key := body[:end]
+		body = body[end:]
+		if sp := strings.IndexByte(key, ' '); sp >= 0 {
+			key = key[:sp]
+		}
+		if key != "" {
+			keys = append(keys, "materi/"+key)
+		}
+	}
+}
