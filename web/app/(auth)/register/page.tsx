@@ -29,7 +29,7 @@ export default function RegisterPage() {
         body: JSON.stringify({ name, email, password }),
       });
       saveSession(session);
-      router.push("/edukasi");
+      router.push("/");
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 409
