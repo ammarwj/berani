@@ -148,7 +148,11 @@ export default function RichTextEditor({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-1.5 flex-wrap">
+      {/* Sticky di bawah TopBar (fixed, h-16): isi materi bisa panjang
+          beberapa layar, dan toolbar yang ikut tergulung memaksa guru naik ke
+          atas tiap kali mau menebalkan satu kata. z-30 < z-50 TopBar/dialog.
+          -mx-px + px-px: ring focus kotak editor tidak terpotong tepi sticky. */}
+      <div className="sticky top-[calc(env(safe-area-inset-top)+4rem)] z-30 py-2 bg-surface-card border-b border-border-subtle flex items-center gap-1.5 flex-wrap">
         {TOOLS.map((t) => (
           <button
             key={t.label}
