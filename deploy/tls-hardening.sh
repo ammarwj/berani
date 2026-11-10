@@ -232,17 +232,48 @@ for f in ${VHOSTS[@]+"${VHOSTS[@]}"}; do
 
   # Bentuk lama (`listen 443 ssl http2;`) dibersihkan lebih dulu: sejak nginx
   # 1.25.1 ia deprecated, dan membiarkannya berarti ada dua sumber kebenaran.
-  perl -0pi -e 's/^(\s*listen\s+443\s+ssl)\s+http2([^;]*;)/$1$2/mg' "$f"
+  perl -0pi -e 's/^(\s*listen\s+[^;]*\bssl\b[^;]*)\s+http2([^;]*;)/$1$2/mg' "$f"
 
-  # Negative lookahead, bukan `grep -q` per file: satu file bisa memuat
-  # beberapa server block, dan guard per-file akan melewatkan block kedua
-  # kalau block pertama sudah punya http2. Lookahead menjamin tiap baris
-  # listen dapat tepat satu, berapa kali pun skrip ini dijalankan.
-  perl -0pi -e 's/^(\s*)(listen\s+443\s+ssl[^;]*;)(?!\s*\n\s*http2\s+on;)/$1$2\n$1http2 on;/mg' "$f"
-
-  # Disisipkan setelah ssl_certificate_key, supaya pasti berada di dalam
-  # server block yang benar — dan hanya kalau belum ada di block itu.
-  perl -0pi -e "s|^(\s*)(ssl_certificate_key[^;]*;)(?!\s*\n\s*include \Q$SNIPPET\E;)|\$1\$2\n\$1include $SNIPPET;|mg" "$f"
+  # http2 dan include disisipkan per SERVER BLOCK, bukan per baris — itu
+  # cakupan keduanya. Satu blok lazim punya dua listen (IPv4 dan `[::]`), dan
+  # blok dual-cert punya dua ssl_certificate_key; regex per-baris memberi dua
+  # direktif di blok yang sama, dan nginx menolaknya sebagai "directive is
+  # duplicate" — seluruh server ikut mati, bukan satu situs.
+  #
+  # Butuh pelacak kedalaman kurung, jadi awk, bukan regex: blok bisa memuat
+  # location{} bersarang, dan `}` pertama bukan akhir blok.
+  awk -v snip="$SNIPPET" '
+    # Buffer satu server block, putuskan di akhir blok — saat sudah diketahui
+    # apa saja yang ada di dalamnya. Tepat satu http2 dan satu include per blok.
+    function flush_block(   i, ind, did_http2, did_inc) {
+      for (i = 1; i <= n; i++) {
+        print buf[i]
+        match(buf[i], /^[[:space:]]*/); ind = substr(buf[i], 1, RLENGTH)
+        if (!did_http2 && has_ssl && !has_http2 && buf[i] ~ /^[[:space:]]*listen[[:space:]][^;]*ssl[^;]*;/) {
+          print ind "http2 on;"; did_http2 = 1
+        }
+        if (!did_inc && has_key && !has_inc && buf[i] ~ /^[[:space:]]*ssl_certificate_key[[:space:]]/) {
+          print ind "include " snip ";"; did_inc = 1
+        }
+      }
+      n = 0; has_ssl = 0; has_http2 = 0; has_key = 0; has_inc = 0
+    }
+    /^[[:space:]]*server[[:space:]]*\{/ && depth == 0 { inblock = 1 }
+    {
+      if (inblock) {
+        buf[++n] = $0
+        if ($0 ~ /^[[:space:]]*listen[[:space:]][^;]*ssl[^;]*;/) has_ssl = 1
+        if ($0 ~ /^[[:space:]]*http2[[:space:]]/) has_http2 = 1
+        if ($0 ~ /^[[:space:]]*ssl_certificate_key[[:space:]]/) has_key = 1
+        if (index($0, snip) > 0) has_inc = 1
+      } else print
+      depth += gsub(/\{/, "{")
+      depth -= gsub(/\}/, "}")
+      if (inblock && depth == 0) { flush_block(); inblock = 0 }
+    }
+    # Kurung tidak seimbang (file terpotong): cetak apa adanya, jangan menebak.
+    END { for (i = 1; i <= n; i++) print buf[i] }
+  ' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
 
   if [ "$before" = "$(md5sum "$f" | cut -d' ' -f1)" ]; then
     ok "sudah sesuai, tidak diubah"
