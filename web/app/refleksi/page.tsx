@@ -41,10 +41,19 @@ const moodInfo = (key: string) => MOODS.find((m) => m.key === key);
 
 const HISTORY_PAGE_SIZE = 10;
 
+// Satu respons per emotikon, termasuk untuk Jalur B — sebelumnya cemas dan
+// tertekan sama-sama mendapat "Terima kasih sudah jujur", kalimat yang sama
+// dengan yang dibaca siswa yang hari itu baik-baik saja. Siswa yang menekan 😢
+// lalu dibalas kalimat generik belajar bahwa aplikasinya tidak benar-benar
+// membaca; itu yang menentukan apakah ia mau bercerita di layar berikutnya.
 const AFFIRMATIONS: Record<string, string> = {
   senang: "Senang mendengarnya! Semoga harimu terus menyenangkan.",
-  baik: "Senang kamu baik-baik saja hari ini!",
-  biasa: "Hari yang tenang juga tidak apa-apa.",
+  baik: "Terima kasih sudah berbagi. Setiap hal baik yang kamu alami patut disyukuri.",
+  biasa: "Tidak apa-apa jika harimu terasa biasa saja. Setiap perasaan tetap berarti.",
+  cemas:
+    "Terima kasih sudah mau bercerita. Adakah sesuatu yang membuatmu merasa khawatir atau tidak nyaman?",
+  sedih:
+    "Kamu tidak harus menghadapi semuanya sendirian. Ada orang yang bisa kamu percaya untuk membantumu.",
 };
 
 type Step =
@@ -117,7 +126,9 @@ function LaporCard({
         {emoji}
       </span>
       <h1 className="t-headline-lg text-text-primary">{title}</h1>
-      <p className="t-body text-text-muted max-w-[32ch]">{body}</p>
+      {/* max-w-prose, bukan 32ch: body sekarang satu paragraf utuh, dan di
+          32ch ia jadi kolom sempit sepuluh baris di layar Android. */}
+      <p className="t-body text-text-muted max-w-prose">{body}</p>
 
       <Card className="w-full max-w-sm mt-space-sm text-left">
         <div className="flex flex-col gap-space-sm">
@@ -171,8 +182,8 @@ function CalmCard({
         {emoji}
       </span>
       <h1 className="t-headline-lg text-text-primary">{title}</h1>
-      <p className="t-body text-text-muted max-w-[32ch]">{body}</p>
-      {extraNote && <p className="t-label-sm text-text-muted max-w-[32ch]">{extraNote}</p>}
+      <p className="t-body text-text-muted max-w-prose">{body}</p>
+      {extraNote && <p className="t-label text-text-primary max-w-prose">{extraNote}</p>}
 
       {ctaLabel && ctaHref ? (
         <Card className="w-full max-w-sm mt-space-sm">
@@ -388,7 +399,7 @@ export default function RefleksiPage() {
         <LaporCard
           emoji="🤗"
           title="Kamu tidak sendirian."
-          body="Banyak siswa yang pernah menyaksikan hal yang sama. Keberanian untuk berbicara bisa membantu temanmu."
+          body="Terima kasih sudah mau berbagi. Jika kamu pernah mengalami atau menyaksikan bullying, penting untuk mengetahui bahwa kamu berhak mendapatkan bantuan. Kamu tidak harus menghadapi situasi tersebut sendirian. Berani bercerita kepada Guru BK dapat menjadi salah satu langkah untuk mendapatkan dukungan."
           cta="Mau cerita ke Guru BK?"
           tone="teal"
           onSkip={() => setStep("history")}
@@ -403,8 +414,8 @@ export default function RefleksiPage() {
         <CalmCard
           emoji="💪"
           title="Itu hal yang baik!"
-          body="Meskipun belum pernah menyaksikan bullying, penting untuk tetap waspada dan tahu apa yang harus dilakukan."
-          extraNote="Yuk pelajari cara melindungi diri dan teman dari bullying!"
+          body="Meskipun kamu belum pernah menyaksikan atau mengalami bullying, penting untuk tetap memahami tanda-tandanya. Dengan mengenali bullying, kamu dapat melindungi diri sendiri, membantu teman yang membutuhkan, dan mengetahui langkah yang tepat jika suatu saat menghadapinya."
+          extraNote="Yuk, pelajari cara mengenali, mencegah, dan merespons bullying!"
           ctaLabel="Pelajari Materi"
           ctaHref="/edukasi"
           tone="teal"
@@ -425,8 +436,12 @@ export default function RefleksiPage() {
                 {moodInfo(mood)?.emoji ?? "🤗"}
               </span>
               <p className="t-headline-sm text-text-primary">Terima kasih sudah jujur.</p>
-              <p className="t-body text-text-muted">
-                Kamu tidak sendirian. Wajar untuk merasa seperti itu kadang-kadang.
+              {/* Respons mengikuti emotikon yang dipilih, bukan satu kalimat
+                  untuk kedua mood: cemas butuh pertanyaan lanjutan, tertekan
+                  butuh diberi tahu bahwa ada orang yang bisa dipercaya. */}
+              <p className="flex items-start gap-space-xs t-body text-support-pink bg-support-pink-subtle rounded-xl px-3 py-2.5 text-left">
+                <Icon name="volunteer_activism" filled className="text-[16px] shrink-0 mt-0.5" />
+                {AFFIRMATIONS[mood] ?? "Kamu tidak sendirian. Wajar untuk merasa seperti itu kadang-kadang."}
               </p>
             </div>
             <p className="flex items-start gap-space-xs t-body text-support-pink bg-support-pink-subtle rounded-xl px-3 py-2.5 mb-space-md">
