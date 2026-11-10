@@ -11,11 +11,14 @@ export const HIDE_SHELL = [
   "/verify-email",
 ];
 
+// Urutan fitur sama dengan kartu bernomor di beranda (app/page.tsx:PILLARS)
+// dan FEATURES di /panduan. Ketiganya menomori hal yang sama, jadi urutan yang
+// berbeda di nav membuat "fitur nomor 2" menunjuk menu yang lain.
 const SISWA_NAV = [
   { href: "/", label: "Beranda", icon: "home" },
   { href: "/edukasi", label: "Edukasi", icon: "menu_book" },
-  { href: "/refleksi", label: "Refleksi", icon: "mood" },
   { href: "/latihan", label: "Latihan", icon: "psychology" },
+  { href: "/refleksi", label: "Refleksi", icon: "mood" },
   { href: "/lapor", label: "Lapor", icon: "shield" },
 ];
 
