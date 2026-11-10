@@ -169,6 +169,69 @@ export function AuthCard({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Panduan singkat untuk halaman login/daftar — satu sumber supaya copy di dua
+// halaman tidak menyimpang. <details> native: tidak butuh state, tetap bisa
+// dibuka tanpa JS, dan terbuka secara default karena yang baru pertama kali
+// datang justru yang butuh membacanya.
+//
+// Copy "Daftar" sengaja menyebut akun baru = siswa: akun guru/admin dibuat
+// super admin lewat /admin/users, jadi guru yang mendaftar sendiri akan dapat
+// akun siswa dan tidak menemukan menu dashboard-nya.
+const AUTH_HELP = [
+  {
+    icon: "login",
+    tint: "bg-ocean-subtle text-primary-container",
+    title: "Sudah punya akun? Masuk",
+    desc: "Isi email sekolah dan kata sandimu, lalu tekan “Masuk ke aplikasi”. Siswa langsung ke beranda; guru BK dan admin masuk ke dashboard.",
+  },
+  {
+    icon: "person_add",
+    tint: "bg-mint-subtle text-secondary",
+    title: "Belum punya akun? Daftar",
+    desc: "Tekan “Daftar”, isi nama lengkap, email sekolah, dan kata sandi minimal 8 karakter. Akun yang kamu buat sendiri adalah akun siswa — akun guru BK dibuat oleh admin sekolah.",
+  },
+  {
+    icon: "lock_reset",
+    tint: "bg-amber-subtle text-tertiary",
+    title: "Lupa kata sandi?",
+    desc: "Tekan “Lupa kata sandi?”, masukkan emailmu, lalu buka tautan atur ulang yang kami kirim ke email itu.",
+  },
+  {
+    icon: "find_in_page",
+    tint: "bg-support-teal-subtle text-support-teal",
+    title: "Hanya mau cek laporan?",
+    desc: "Melacak laporan tidak butuh akun. Pakai “Lacak laporan dengan kode tiket” dan masukkan kode tiketmu.",
+  },
+];
+
+export function AuthHelp() {
+  return (
+    <details open className="group bg-surface-container-low border border-border-subtle rounded-2xl">
+      <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer min-h-12 px-space-md py-space-sm flex items-center gap-space-xs t-label text-text-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-container/20 rounded-2xl">
+        <Icon name="help" className="text-[20px] text-primary-container" />
+        <span className="flex-1">Baru di BERANI? Begini cara pakainya</span>
+        <Icon
+          name="expand_more"
+          className="text-[20px] text-text-muted transition-transform group-open:rotate-180"
+        />
+      </summary>
+      <ul className="px-space-md pb-space-md flex flex-col gap-space-sm">
+        {AUTH_HELP.map((h) => (
+          <li key={h.title} className="flex gap-space-sm">
+            <span className={`w-9 h-9 rounded-xl grid place-items-center shrink-0 ${h.tint}`}>
+              <Icon name={h.icon} className="text-[20px]" />
+            </span>
+            <div className="min-w-0">
+              <p className="t-label text-text-primary">{h.title}</p>
+              <p className="t-body-sm text-text-muted mt-0.5">{h.desc}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 export function AuthButton({ children, className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button

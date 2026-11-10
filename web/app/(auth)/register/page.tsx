@@ -4,7 +4,7 @@ import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, saveSession, Session, ApiError, panduanSeen } from "@/lib/api";
-import { Field, Alert, inputClass, AuthShell, AuthHero, AuthCard, AuthButton, PasswordField } from "@/components/ui";
+import { Field, Alert, inputClass, AuthShell, AuthHero, AuthCard, AuthButton, AuthHelp, PasswordField } from "@/components/ui";
 import Icon from "@/components/Icon";
 
 export default function RegisterPage() {
@@ -93,6 +93,8 @@ export default function RegisterPage() {
           </AuthButton>
         </form>
       </AuthCard>
+
+      <AuthHelp />
 
       <p className="t-body text-text-muted text-center">
         Sudah punya akun?{" "}
