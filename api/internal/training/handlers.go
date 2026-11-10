@@ -8,9 +8,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"berani.id/api/internal/middleware"
+	"berani.id/api/internal/storage"
 )
 
-type Handler struct{ DB *pgxpool.Pool }
+type Handler struct {
+	DB *pgxpool.Pool
+	// Storage dipakai hanya untuk membuang media skenario saat skenarionya
+	// dihapus permanen. nil kalau R2 belum dikonfigurasi — unggah media mati,
+	// sisanya tetap jalan.
+	Storage *storage.Storage
+}
 
 type option struct {
 	Label    string `json:"label"`
@@ -24,15 +31,17 @@ type publicOption struct {
 }
 
 type scenario struct {
-	ID       string         `json:"id"`
-	Prompt   string         `json:"prompt"`
-	Category string         `json:"category"`
-	Options  []publicOption `json:"options"`
+	ID        string         `json:"id"`
+	Prompt    string         `json:"prompt"`
+	Category  string         `json:"category"`
+	MediaURL  string         `json:"media_url"`
+	MediaKind string         `json:"media_kind"`
+	Options   []publicOption `json:"options"`
 }
 
 func (h *Handler) ListScenarios(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query(r.Context(),
-		`SELECT id, prompt, category, options FROM training_scenarios
+		`SELECT id, prompt, category, media_url, media_kind, options FROM training_scenarios
 		 WHERE published ORDER BY order_index, created_at`)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -44,7 +53,7 @@ func (h *Handler) ListScenarios(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var s scenario
 		var opts []option
-		if err := rows.Scan(&s.ID, &s.Prompt, &s.Category, &opts); err != nil {
+		if err := rows.Scan(&s.ID, &s.Prompt, &s.Category, &s.MediaURL, &s.MediaKind, &opts); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}

@@ -82,24 +82,48 @@ func (s *Storage) SignedURL(ctx context.Context, key string, ttl time.Duration) 
 	return req.URL, nil
 }
 
+// Object adalah satu objek yang ditarik balik dari bucket, beserta header yang
+// perlu diteruskan apa adanya ke browser.
+type Object struct {
+	Body          io.ReadCloser
+	ContentType   string
+	ContentLength int64
+	// ContentRange terisi hanya kalau permintaannya memakai Range — nilainya
+	// yang menentukan apakah handler membalas 206 atau 200.
+	ContentRange string
+}
+
 // Get fetches an object back out, for endpoints that stream materi images to
-// students directly rather than handing out a SignedURL.
-func (s *Storage) Get(ctx context.Context, key string) (io.ReadCloser, string, error) {
+// students directly rather than handing out a SignedURL. rangeHeader diteruskan
+// apa adanya ke R2 (kosong = seluruh objek): tanpa ini <video> tidak bisa
+// di-seek — Chrome Android malah menolak memutar file yang servernya tidak
+// menjawab Range sama sekali.
+func (s *Storage) Get(ctx context.Context, key, rangeHeader string) (*Object, error) {
 	if s == nil {
-		return nil, "", ErrNotConfigured
+		return nil, ErrNotConfigured
 	}
-	out, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+	in := &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
-	})
+	}
+	if rangeHeader != "" {
+		in.Range = aws.String(rangeHeader)
+	}
+	out, err := s.client.GetObject(ctx, in)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	ct := ""
+	o := &Object{Body: out.Body}
 	if out.ContentType != nil {
-		ct = *out.ContentType
+		o.ContentType = *out.ContentType
 	}
-	return out.Body, ct, nil
+	if out.ContentLength != nil {
+		o.ContentLength = *out.ContentLength
+	}
+	if out.ContentRange != nil {
+		o.ContentRange = *out.ContentRange
+	}
+	return o, nil
 }
 
 // Delete removes an object. Used when the DB row referencing it is deleted for

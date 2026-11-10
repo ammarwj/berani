@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import { api, isLoggedIn } from "@/lib/api";
 import { Empty, LoginRequired } from "@/components/ui";
 import Icon from "@/components/Icon";
+import ScenarioMedia from "@/components/ScenarioMedia";
 
 type Scenario = {
   id: string;
   prompt: string;
   category: string;
+  media_url: string;
+  media_kind: string;
   options: { label: string }[];
 };
 
@@ -141,6 +144,14 @@ export default function LatihanPage() {
                     <Icon name="chat_bubble" className="text-[20px] text-primary-container shrink-0" />
                     <p className="t-body text-text-primary">{s.prompt}</p>
                   </div>
+
+                  {/* Di bawah situasi, di atas pilihan: siswa mengamati dulu,
+                      baru memilih. */}
+                  <ScenarioMedia
+                    url={s.media_url}
+                    kind={s.media_kind}
+                    className="mt-space-sm"
+                  />
 
                   <div className="flex flex-col gap-space-sm mt-space-md">
                     {s.options.map((o, i) => {

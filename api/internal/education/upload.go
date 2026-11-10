@@ -3,10 +3,14 @@ package education
 import (
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
-const maxImageSize = 5 << 20 // 5 MB
+const (
+	maxImageSize = 5 << 20  // 5 MB
+	maxVideoSize = 50 << 20 // 50 MB
+)
 
 var allowedImageTypes = map[string]bool{
 	"image/jpeg": true,
@@ -15,19 +19,43 @@ var allowedImageTypes = map[string]bool{
 	"image/gif":  true,
 }
 
+// Hanya wadah yang bisa diputar <video> di Chrome Android tanpa plugin apa pun.
+// Tidak ada MKV/AVI: keduanya terunggah mulus lalu diam-diam gagal diputar di
+// halaman siswa, dan guru baru tahu setelah materinya terbit.
+var allowedVideoTypes = map[string]bool{
+	"video/mp4":       true,
+	"video/webm":      true,
+	"video/quicktime": true, // .mov — keluaran default kamera iPhone
+}
+
 // UploadImage stores an image used inside a module's content ("isi materi")
 // and returns the path students' browsers load it from. Kept under
 // education/ rather than report/: these objects are meant to be served back
 // out publicly (see ServeUpload), unlike report evidence behind SignedURL.
 func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
+	h.upload(w, r, maxImageSize, allowedImageTypes,
+		"tipe file tidak didukung (gunakan JPG, PNG, WEBP, atau GIF)")
+}
+
+// UploadVideo menerima video yang diputar langsung di halaman materi — bukan
+// embed YouTube. Batas 50 MB, sepuluh kali lipat gambar: satu menit rekaman
+// ponsel saja sudah belasan MB, dan video yang ditolak tanpa alasan jelas akan
+// dikira aplikasinya rusak. Objeknya ikut prefix "materi/" supaya ServeUpload
+// dan uploadKeys (pembersih saat materi dihapus) berlaku sama untuk keduanya.
+func (h *Handler) UploadVideo(w http.ResponseWriter, r *http.Request) {
+	h.upload(w, r, maxVideoSize, allowedVideoTypes,
+		"tipe video tidak didukung (gunakan MP4, WEBM, atau MOV)")
+}
+
+func (h *Handler) upload(w http.ResponseWriter, r *http.Request, maxSize int64, allowed map[string]bool, typeErr string) {
 	if h.Storage == nil {
-		http.Error(w, "penyimpanan gambar belum dikonfigurasi", http.StatusServiceUnavailable)
+		http.Error(w, "penyimpanan berkas belum dikonfigurasi", http.StatusServiceUnavailable)
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, maxImageSize)
-	if err := r.ParseMultipartForm(maxImageSize); err != nil {
-		http.Error(w, "file terlalu besar (maks 5 MB)", http.StatusRequestEntityTooLarge)
+	r.Body = http.MaxBytesReader(w, r.Body, maxSize)
+	if err := r.ParseMultipartForm(maxSize); err != nil {
+		http.Error(w, "file terlalu besar (maks "+strconv.FormatInt(maxSize>>20, 10)+" MB)", http.StatusRequestEntityTooLarge)
 		return
 	}
 
@@ -39,14 +67,14 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	contentType := header.Header.Get("Content-Type")
-	if !allowedImageTypes[contentType] {
-		http.Error(w, "tipe file tidak didukung (gunakan JPG, PNG, WEBP, atau GIF)", http.StatusUnsupportedMediaType)
+	if !allowed[contentType] {
+		http.Error(w, typeErr, http.StatusUnsupportedMediaType)
 		return
 	}
 
 	key, err := h.Storage.Upload(r.Context(), "materi", header.Filename, contentType, file)
 	if err != nil {
-		http.Error(w, "gagal mengunggah gambar", http.StatusBadGateway)
+		http.Error(w, "gagal mengunggah berkas", http.StatusBadGateway)
 		return
 	}
 	writeJSON(w, map[string]string{"path": "/uploads/" + key})
@@ -67,18 +95,30 @@ func (h *Handler) ServeUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, contentType, err := h.Storage.Get(r.Context(), key)
+	// Range diteruskan ke R2, bukan diabaikan: <video> meminta potongan file
+	// untuk seek, dan browser yang tidak mendapat 206 memperlakukan videonya
+	// sebagai tidak bisa dilompati — di Chrome Android sering gagal play sama
+	// sekali. Accept-Ranges selalu diumumkan supaya browser tahu boleh meminta.
+	obj, err := h.Storage.Get(r.Context(), key, r.Header.Get("Range"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	defer body.Close()
+	defer obj.Body.Close()
 
-	if contentType != "" {
-		w.Header().Set("Content-Type", contentType)
+	if obj.ContentType != "" {
+		w.Header().Set("Content-Type", obj.ContentType)
 	}
 	// Kuncinya berisi acakan, bukan nama file — URL yang sama tidak pernah
 	// menunjuk konten berbeda, jadi aman di-cache selamanya.
 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-	io.Copy(w, body)
+	w.Header().Set("Accept-Ranges", "bytes")
+	if obj.ContentLength > 0 {
+		w.Header().Set("Content-Length", strconv.FormatInt(obj.ContentLength, 10))
+	}
+	if obj.ContentRange != "" {
+		w.Header().Set("Content-Range", obj.ContentRange)
+		w.WriteHeader(http.StatusPartialContent)
+	}
+	io.Copy(w, obj.Body)
 }

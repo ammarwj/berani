@@ -7,12 +7,19 @@ import Icon from "@/components/Icon";
 import { api, isAdmin } from "@/lib/api";
 import { PageHeader, Card, Button, Field, Alert, Empty, inputClass } from "@/components/ui";
 import DeleteContentDialog from "@/components/DeleteContentDialog";
+import MediaDialog, { type MediaKind } from "@/components/MediaDialog";
+import ScenarioMedia from "@/components/ScenarioMedia";
 import { type ScenarioFootprint, describeScenario } from "@/lib/footprint";
 
 type Option = { label: string; feedback: string; is_best: boolean };
 type Scenario = {
   prompt: string;
   category: string;
+  // Media pendamping situasi: "amati gambar/video ini, lalu pilih responsmu".
+  // Satu media per skenario — situasinya satu paragraf, bukan artikel, jadi
+  // tidak ada yang perlu diselipkan di antara paragraf seperti di materi.
+  media_url: string;
+  media_kind: MediaKind | "";
   options: Option[];
   order_index: number;
   published: boolean;
@@ -21,6 +28,8 @@ type Scenario = {
 const BLANK: Scenario = {
   prompt: "",
   category: "umum",
+  media_url: "",
+  media_kind: "",
   options: [
     { label: "", feedback: "", is_best: true },
     { label: "", feedback: "", is_best: false },
@@ -40,13 +49,14 @@ export default function SkenarioEditorPage({ params }: PageProps<"/admin/skenari
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
+  const [mediaOpen, setMediaOpen] = useState(false);
 
   useEffect(() => {
     const ok = isAdmin();
     setAllowed(ok);
     if (!ok || isNew) return;
     api<Scenario>(`/admin/training/scenarios/${id}`)
-      .then((d) => setS({ ...d, options: d.options ?? [] }))
+      .then((d) => setS({ ...d, options: d.options ?? [], media_url: d.media_url ?? "", media_kind: d.media_kind ?? "" }))
       .catch(() => setError("Skenario tidak ditemukan."));
   }, [id, isNew]);
 
@@ -133,6 +143,45 @@ export default function SkenarioEditorPage({ params }: PageProps<"/admin/skenari
               placeholder="Misal: Temanmu dijadikan bahan lelucon di grup kelas…"
             />
           </Field>
+          {/* Media opsional, ditampilkan di atas pilihan respons: skenario
+              "amati gambar/video ini, lalu pilih responsmu". Letaknya tetap —
+              berbeda dari isi materi, situasinya satu paragraf, jadi tidak ada
+              posisi lain yang masuk akal. */}
+          <div className="flex flex-col gap-space-xs">
+            <span className="t-label text-text-primary">Gambar / video situasi</span>
+            {s.media_url ? (
+              <>
+                <ScenarioMedia url={s.media_url} kind={s.media_kind} />
+                <div className="flex items-center gap-space-sm">
+                  <Button type="button" variant="outline" onClick={() => setMediaOpen(true)}>
+                    Ganti media
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => patch({ media_url: "", media_kind: "" })}
+                    className="flex items-center gap-space-xs"
+                  >
+                    <Icon name="close" className="text-[20px]" />
+                    Hapus media
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setMediaOpen(true)}
+                className="self-start flex items-center gap-space-xs"
+              >
+                <Icon name="add_photo_alternate" className="text-[20px]" />
+                Tambah gambar / video
+              </Button>
+            )}
+            <span className="t-label-md text-text-muted">
+              Opsional. Siswa melihatnya tepat di bawah situasi, sebelum memilih respons.
+            </span>
+          </div>
           <Field label="Kategori">
             <input
               value={s.category}
@@ -245,6 +294,13 @@ export default function SkenarioEditorPage({ params }: PageProps<"/admin/skenari
           </Button>
         </div>
       )}
+
+      <MediaDialog
+        open={mediaOpen}
+        onOpenChange={setMediaOpen}
+        onPick={({ src, kind }) => patch({ media_url: src, media_kind: kind })}
+        withAlt={false}
+      />
 
       <DeleteContentDialog<ScenarioFootprint>
         target={confirmDel ? { id, title: s.prompt, subtitle: s.category } : null}

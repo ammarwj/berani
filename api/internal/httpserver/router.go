@@ -84,7 +84,7 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("DELETE /reflections/{id}", requireAuth(http.HandlerFunc(reflH.Delete)))
 	mux.Handle("POST /reflections/witness", requireAuth(http.HandlerFunc(reflH.SubmitWitness)))
 
-	trainH := &training.Handler{DB: d.DB}
+	trainH := &training.Handler{DB: d.DB, Storage: d.Storage}
 	mux.Handle("GET /training/scenarios", optionalAuth(http.HandlerFunc(trainH.ListScenarios)))
 	mux.Handle("POST /training/attempts", requireAuth(http.HandlerFunc(trainH.SubmitAttempt)))
 	mux.Handle("GET /training/progress", requireAuth(http.HandlerFunc(trainH.Progress)))
@@ -115,6 +115,10 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /admin/education/modules/{id}/footprint", admin(eduH.AdminModuleFootprint))
 	mux.Handle("DELETE /admin/education/modules/{id}", admin(eduH.AdminDeleteModule))
 	mux.Handle("POST /admin/education/uploads", admin(eduH.UploadImage))
+	// Video isi materi & media skenario sama-sama lewat sini: objeknya satu
+	// prefix "materi/", jadi ServeUpload dan pembersihan saat hapus berlaku
+	// sama untuk keduanya.
+	mux.Handle("POST /admin/education/uploads/video", admin(eduH.UploadVideo))
 	mux.Handle("GET /admin/progress", admin(eduH.AdminStudentProgress))
 	mux.Handle("GET /admin/training/scenarios", admin(trainH.AdminList))
 	mux.Handle("POST /admin/training/scenarios", admin(trainH.AdminCreate))

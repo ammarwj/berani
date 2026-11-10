@@ -41,6 +41,8 @@ export function describeModule(f: ModuleFootprint): Footprint {
 export type ScenarioFootprint = {
   attempts: number;
   students: number;
+  // 0 atau 1: satu media terunggah per skenario.
+  media: number;
 };
 
 export function describeScenario(f: ScenarioFootprint): Footprint {
@@ -49,6 +51,7 @@ export function describeScenario(f: ScenarioFootprint): Footprint {
       f.attempts === 0 ? (
         <p className="t-body-sm text-text-muted">
           Belum ada siswa yang mencoba skenario ini, jadi tidak ada percobaan yang hilang.
+          {f.media > 0 && " Gambar/video situasinya ikut dihapus."}
         </p>
       ) : (
         <div className="rounded-xl bg-danger-subtle p-space-sm flex flex-col gap-1">
@@ -57,6 +60,7 @@ export function describeScenario(f: ScenarioFootprint): Footprint {
             <li>
               {f.attempts} percobaan dari {f.students} siswa, beserta skornya
             </li>
+            {f.media > 0 && <li>gambar/video situasi yang diunggah</li>}
           </ul>
           <p className="t-body-sm text-text-primary mt-1">
             Halaman progres latihan menghitung dari skenario terbit, jadi angka lama tidak bisa

@@ -56,14 +56,46 @@ assert.equal(toMarkdown(br), "baris satu\nbaris dua");
 // Dan kembali lagi utuh: satu paragraf berisi break, bukan dua paragraf.
 assert.deepEqual(toDoc(toMarkdown(br)), br);
 
-// Node yang tidak dikenal tidak boleh meledak atau menyelundupkan isinya.
+// Node yang tidak dikenal (blockquote dkk. dimatikan di editor, tapi paste dari
+// luar bisa membawanya) turun jadi teks biasa, bukan meledak dan bukan hilang
+// diam-diam: isi yang diketik guru tidak boleh lenyap saat simpan, dan teksnya
+// tetap di-escape renderer. Markup-nya yang dibuang, bukan isinya.
+//
+// Kasus ini dulu memakai `image` — node yang justru dikenal — jadi
+// assertion-nya menuntut gambar lenyap saat disimpan, dan check ini memang
+// sudah gagal sebelum media ditambahkan.
 assert.equal(
   toMarkdown({
     type: "doc",
-    content: [{ type: "image", attrs: { src: "x" } }, { type: "paragraph", content: [{ type: "text", text: "a" }] }],
+    content: [
+      { type: "blockquote", content: [{ type: "text", text: "dikutip" }] },
+      { type: "paragraph", content: [{ type: "text", text: "a" }] },
+    ],
   } as Doc),
-  "a",
+  "dikutip\n\na",
 );
+
+// Media: ketiganya round-trip lengkap dengan lebar & perataannya. Lebar yang
+// hilang saat simpan berarti guru mengatur ukuran lalu mendapatinya kembali ke
+// semula setiap kali materinya dibuka ulang.
+// Alamatnya penuh, bukan relatif: itu yang ditulis editor
+// (`${API_URL}/uploads/…`), dan markdown.ts memang hanya mengenali http(s).
+for (const md of [
+  "![alt](http://localhost:8080/uploads/materi/a.png)",
+  "![alt](http://localhost:8080/uploads/materi/a.png =320x)",
+  "![alt](http://localhost:8080/uploads/materi/a.png =320x center)",
+  "![](https://contoh.id/x.png right)",
+  "[video](http://localhost:8080/uploads/materi/a.mp4)",
+  "[video](http://localhost:8080/uploads/materi/a.mp4 =480x center)",
+  "[youtube](https://www.youtube.com/watch?v=abcdefghijk)",
+  "[youtube](https://www.youtube.com/watch?v=abcdefghijk =480x right)",
+]) {
+  assert.equal(toMarkdown(toDoc(md)), md, `round-trip media mengubah: ${md}`);
+}
+
+// "left" adalah default dan sengaja tidak ditulis: kalau ikut tertulis, tiap
+// materi lama berubah isinya begitu guru menekan simpan sekali.
+assert.equal(toMarkdown(toDoc("![a](https://contoh.id/x.png left)")), "![a](https://contoh.id/x.png)");
 
 // Tautan berskema berbahaya tidak pernah sampai ke editor sebagai link —
 // parseMarkdown menurunkannya jadi teks, dan itu harus tetap berlaku di sini.

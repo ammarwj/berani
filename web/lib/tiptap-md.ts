@@ -38,9 +38,22 @@ export function toDoc(md: string): Doc {
       return { type: "heading", attrs: { level: 2 }, content: b.children.map(text) };
     if (b.t === "ul") return { type: "bulletList", content: b.items.map(item) };
     if (b.t === "ol") return { type: "orderedList", content: b.items.map(item) };
-    if (b.t === "img") return { type: "image", attrs: { src: b.src, alt: b.alt, width: b.width ?? null } };
+    if (b.t === "img")
+      return {
+        type: "image",
+        attrs: { src: b.src, alt: b.alt, width: b.width ?? null, align: b.align ?? null },
+      };
+    if (b.t === "video")
+      return { type: "video", attrs: { src: b.src, width: b.width ?? null, align: b.align ?? null } };
     if (b.t === "youtube")
-      return { type: "youtube", attrs: { src: `https://www.youtube.com/watch?v=${b.id}` } };
+      return {
+        type: "youtube",
+        attrs: {
+          src: `https://www.youtube.com/watch?v=${b.id}`,
+          width: b.width ?? null,
+          align: b.align ?? null,
+        },
+      };
     return para(b.children.map(text));
   });
   // Dokumen ProseMirror tidak boleh kosong — skemanya mewajibkan minimal satu blok.
@@ -64,6 +77,15 @@ function inline(nodes: Node[] | undefined): string {
     .join("");
 }
 
+// Sufiks lebar & perataan yang dipakai ketiga blok media. "left" sengaja tidak
+// ditulis: itu default, dan menuliskannya akan mengubah tiap materi lama jadi
+// "berubah" di diff pertama kali guru menekan simpan.
+function suffix(b: Node): string {
+  const width = b.attrs?.width as number | null | undefined;
+  const align = b.attrs?.align as string | null | undefined;
+  return `${width ? ` =${width}x` : ""}${align && align !== "left" ? ` ${align}` : ""}`;
+}
+
 // Hanya blok yang bisa dihasilkan toolbar yang diterjemahkan. Node lain
 // (blockquote, codeBlock, dst.) tidak diaktifkan di StarterKit editor ini, jadi
 // tidak ada jalan untuk membuatnya.
@@ -75,11 +97,13 @@ export function toMarkdown(doc: Doc): string {
     if (b.type === "heading") out.push(`## ${inline(b.content)}`);
     else if (b.type === "image") {
       const src = b.attrs?.src as string | undefined;
-      const width = b.attrs?.width as number | null | undefined;
-      if (src) out.push(`![${(b.attrs?.alt as string) ?? ""}](${src}${width ? ` =${width}x` : ""})`);
+      if (src) out.push(`![${(b.attrs?.alt as string) ?? ""}](${src}${suffix(b)})`);
+    } else if (b.type === "video") {
+      const src = b.attrs?.src as string | undefined;
+      if (src) out.push(`[video](${src}${suffix(b)})`);
     } else if (b.type === "youtube") {
       const id = youtubeId((b.attrs?.src as string) ?? "");
-      if (id) out.push(`[youtube](https://www.youtube.com/watch?v=${id})`);
+      if (id) out.push(`[youtube](https://www.youtube.com/watch?v=${id}${suffix(b)})`);
     } else if (b.type === "bulletList" || b.type === "orderedList") {
       const ordered = b.type === "orderedList";
       const lines = (b.content ?? []).map((li, i) => {

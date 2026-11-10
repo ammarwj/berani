@@ -1,4 +1,4 @@
-import { parseMarkdown, type Inline } from "@/lib/markdown";
+import { parseMarkdown, type Align, type Inline } from "@/lib/markdown";
 
 function Spans({ nodes }: { nodes: Inline[] }) {
   return (
@@ -27,6 +27,35 @@ function Spans({ nodes }: { nodes: Inline[] }) {
   );
 }
 
+// Blok media dibungkus <div> sendiri supaya perataannya bekerja: margin auto
+// butuh elemen blok dengan lebar terbatas, dan lebar itu yang di-drag guru.
+// max-w-full, bukan width tetap: di layar Android lebar 600px yang diatur guru
+// di laptop harus menyusut, bukan memaksa halaman menggeser ke samping.
+const ALIGN_CLASS: Record<Align, string> = {
+  left: "mr-auto",
+  center: "mx-auto",
+  right: "ml-auto",
+};
+
+function MediaBlock({
+  width,
+  align,
+  children,
+}: {
+  width?: number;
+  align?: Align;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`w-full max-w-full ${ALIGN_CLASS[align ?? "left"]}`}
+      style={width ? { width } : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
 // Node terstruktur → elemen React. Tidak ada dangerouslySetInnerHTML di jalur ini.
 export default function Markdown({ source, className = "" }: { source: string; className?: string }) {
   return (
@@ -34,27 +63,43 @@ export default function Markdown({ source, className = "" }: { source: string; c
       {parseMarkdown(source).map((b, i) => {
         if (b.t === "h") return <h2 key={i} className="t-title text-text-primary mt-2"><Spans nodes={b.children} /></h2>;
         if (b.t === "img")
-          // eslint-disable-next-line @next/next/no-img-element -- URL eksternal guru, bukan aset lokal yang bisa dioptimalkan next/image
           return (
-            <img
-              key={i}
-              src={b.src}
-              alt={b.alt}
-              className="rounded-xl max-w-full"
-              style={b.width ? { width: b.width, height: "auto" } : undefined}
-            />
+            <MediaBlock key={i} width={b.width} align={b.align}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- URL eksternal guru, bukan aset lokal yang bisa dioptimalkan next/image */}
+              <img src={b.src} alt={b.alt} className="rounded-xl w-full h-auto" />
+            </MediaBlock>
+          );
+        if (b.t === "video")
+          return (
+            <MediaBlock key={i} width={b.width} align={b.align}>
+              {/* controls: play/pause, volume, dan posisi putar datang dari
+                  browser sendiri — kontrol asli Android lebih bisa dipakai
+                  (dan lebih bisa diakses) daripada tombol buatan sendiri.
+                  playsInline supaya iOS tidak membajaknya jadi fullscreen,
+                  preload="metadata" supaya durasi tampil tanpa mengunduh
+                  seluruh video di koneksi sekolah. */}
+              <video
+                src={b.src}
+                controls
+                playsInline
+                preload="metadata"
+                className="rounded-xl w-full h-auto bg-black"
+              />
+            </MediaBlock>
           );
         if (b.t === "youtube")
           return (
-            <div key={i} className="aspect-video rounded-xl overflow-hidden">
-              <iframe
-                className="w-full h-full"
-                src={`https://www.youtube-nocookie.com/embed/${b.id}`}
-                title="Video YouTube"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
+            <MediaBlock key={i} width={b.width} align={b.align}>
+              <div className="aspect-video rounded-xl overflow-hidden">
+                <iframe
+                  className="w-full h-full"
+                  src={`https://www.youtube-nocookie.com/embed/${b.id}`}
+                  title="Video YouTube"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </MediaBlock>
           );
         if (b.t === "ul")
           return (
