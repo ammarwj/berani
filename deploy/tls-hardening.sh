@@ -151,40 +151,81 @@ say "2. Snippet TLS bersama"
 # Satu file yang di-include semua vhost, bukan blok yang disalin berkali-kali:
 # empat salinan setelan TLS akan menyimpang diam-diam, dan yang menyimpang
 # diam-diam di sini berarti satu situs tiba-tiba tidak bisa dibuka dari sekolah.
+#
+# Isinya HANYA yang belum diatur certbot. Vhost yang pernah disentuh
+# `certbot --nginx` sudah meng-include /etc/letsencrypt/options-ssl-nginx.conf,
+# yang menyetel ssl_protocols, ssl_ciphers, ssl_session_cache dan
+# ssl_session_timeout. Mengulanginya bukan sekadar mubazir — nginx menolak
+# start dengan "directive is duplicate", dan seluruh situs di server ikut mati.
 mkdir -p /etc/nginx/snippets
 cat > "$SNIPPET" <<'EOF'
 # Dikelola deploy/tls-hardening.sh. Jangan diedit manual — jalankan ulang
 # skripnya supaya seluruh vhost ikut berubah bersamaan.
 #
-# Setelan ini menyasar klien di jaringan institusi: proxy SSL-inspection dan
-# perangkat dengan trust store lama, bukan browser terbaru.
-
-# TLS 1.2 ikut dipertahankan. Appliance inspeksi di banyak sekolah belum
-# berbicara TLS 1.3; mematikannya membuat seluruh jaringan itu kehilangan akses
-# demi keuntungan keamanan yang tipis untuk aplikasi tanpa data pembayaran.
-ssl_protocols TLSv1.2 TLSv1.3;
-ssl_prefer_server_ciphers off;
-ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
-
-ssl_session_timeout 1d;
-ssl_session_cache shared:BeraniSSL:10m;
-# Tickets off: tanpa rotasi kunci, session ticket merusak forward secrecy.
-ssl_session_tickets off;
+# HANYA berisi direktif yang tidak pernah diatur certbot. Vhost yang pernah
+# disentuh `certbot --nginx` meng-include /etc/letsencrypt/options-ssl-nginx.conf
+# di level yang sama, dan di nginx direktif ganda pada level yang sama bukan
+# peringatan — ia menolak start, jadi SELURUH situs di server ikut mati. Karena
+# itu ssl_protocols, ssl_ciphers, ssl_session_cache dan ssl_session_timeout
+# sengaja tidak ada di sini: certbot sudah menyetelnya ke nilai yang memadai
+# (TLS 1.2 + 1.3), dan mengubahnya bukan bagian dari perbaikan ini.
 
 # OCSP stapling: server yang mengambil status pencabutan, lalu melampirkannya
 # di handshake. Tanpa ini klien harus menghubungi Let's Encrypt sendiri — dan
-# jaringan sekolah yang memblokir outbound itu membuat handshake menggantung.
+# jaringan sekolah yang memblokir outbound itu membuat handshake menggantung
+# atau gagal sama sekali.
 ssl_stapling on;
 ssl_stapling_verify on;
+
 # Resolver dibutuhkan untuk menghubungi OCSP responder. Quad9 + Cloudflare:
 # dua penyedia berbeda supaya satu yang diblokir tidak mematikan stapling.
 resolver 9.9.9.9 1.1.1.1 valid=300s;
 resolver_timeout 5s;
 EOF
 ok "Ditulis: $SNIPPET"
+echo "    Isi: ssl_stapling + resolver saja — sisanya dibiarkan apa adanya."
+
+# Pengaman kedua: vhost yang SUDAH menyetel ssl_stapling sendiri akan
+# menggandakannya begitu snippet ini di-include, dan di nginx itu fatal.
+# Dilewati, bukan dipaksakan — rollback memang menyelamatkan server, tapi pesan
+# yang menyebut file mana jauh lebih berguna daripada "test failed".
+#
+# `nginx -T`, bukan isi file mentah: direktifnya bisa datang dari include lain
+# (misal snippet TLS milik panel hosting) yang tidak kelihatan dari vhost-nya.
+# Tapi -T menggabungkan semua server block jadi satu aliran, jadi pemeriksaan
+# per-vhost tetap dari filenya, dan -T hanya dipakai untuk memastikan snippet
+# ini belum ter-include di mana pun.
+SKIPPED=()
+KEEP=()
+for f in "${VHOSTS[@]}"; do
+  # Sudah meng-include snippet ini → include kedua = direktif ganda.
+  if grep -qF "$SNIPPET" "$f"; then
+    SKIPPED+=("$f (snippet sudah ter-include)")
+    continue
+  fi
+  if grep -qE '^[[:space:]]*ssl_stapling[[:space:]]' "$f"; then
+    SKIPPED+=("$f (punya ssl_stapling sendiri)")
+    continue
+  fi
+  KEEP+=("$f")
+done
+if [ "${#SKIPPED[@]}" -gt 0 ]; then
+  for s in ${SKIPPED[@]+"${SKIPPED[@]}"}; do
+    warn "dilewati: $s"
+  done
+fi
+# Daftar penuh disimpan: tahap dual-cert tetap perlu menyentuh vhost yang
+# dilewati di sini — yang disaring hanyalah pemasangan snippet.
+ALL_VHOSTS=(${VHOSTS[@]+"${VHOSTS[@]}"})
+VHOSTS=(${KEEP[@]+"${KEEP[@]}"})
+if [ "${#VHOSTS[@]}" -eq 0 ]; then
+  echo
+  echo "Semua vhost sudah dikonfigurasi — tidak ada yang perlu diubah."
+  echo "Lanjut ke verifikasi."
+fi
 
 say "3. Pasang HTTP/2 + include snippet di tiap vhost"
-for f in "${VHOSTS[@]}"; do
+for f in ${VHOSTS[@]+"${VHOSTS[@]}"}; do
   echo "    $f"
 
   before="$(md5sum "$f" | cut -d' ' -f1)"
@@ -238,11 +279,15 @@ else
          --key-type rsa --rsa-key-size 2048 \
          --cert-name "${d}-rsa" -d "$d"; then
       ok "$d: sertifikat RSA terbit"
-      # Pasangan ssl_certificate kedua di server block domain ini.
-      for f in "${VHOSTS[@]}"; do
-        grep -q "server_name.*\b${d}\b" "$f" || continue
+      # Pasangan ssl_certificate kedua di server block domain ini. ALL_VHOSTS,
+      # bukan VHOSTS: yang kedua sudah disaring di tahap 2, dan vhost yang
+      # dilewati di sana tetap butuh dual-cert.
+      for f in ${ALL_VHOSTS[@]+"${ALL_VHOSTS[@]}"}; do
+        grep -q "server_name.*${d}" "$f" || continue
         grep -q "${d}-rsa" "$f" && continue
-        perl -0pi -e "s|^(\s*)(include \Q$SNIPPET\E;)|\$1ssl_certificate /etc/letsencrypt/live/${d}-rsa/fullchain.pem;\n\$1ssl_certificate_key /etc/letsencrypt/live/${d}-rsa/privkey.pem;\n\$1\$2|m" "$f"
+        # Diikat ke ssl_certificate_key, sama seperti include snippet: itu
+        # satu-satunya jangkar yang pasti ada di tiap server block ber-SSL.
+        perl -0pi -e "s|^(\s*)(ssl_certificate_key[^;]*;)|\$1\$2\n\$1ssl_certificate /etc/letsencrypt/live/${d}-rsa/fullchain.pem;\n\$1ssl_certificate_key /etc/letsencrypt/live/${d}-rsa/privkey.pem;|m" "$f"
         ok "$d: dual-cert dipasang di $(basename "$f")"
       done
     else
