@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { Node, mergeAttributes } from "@tiptap/core";
+import { NodeSelection } from "@tiptap/pm/state";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
 import TiptapImage from "@tiptap/extension-image";
 import { youtubeId, type Align } from "@/lib/markdown";
@@ -52,7 +53,14 @@ const ALIGN_TOOLS: { value: Align; label: string; icon: string }[] = [
   { value: "float-right", label: "Mengambang kanan", icon: "format_image_right" },
 ];
 
-function MediaView({ node, updateAttributes, deleteNode, selected }: NodeViewProps) {
+function MediaView({
+  node,
+  updateAttributes,
+  deleteNode,
+  selected,
+  editor,
+  getPos,
+}: NodeViewProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const { src, alt, width, align } = node.attrs as {
     src: string;
@@ -99,6 +107,39 @@ function MediaView({ node, updateAttributes, deleteNode, selected }: NodeViewPro
     window.addEventListener("pointerup", onUp);
   }
 
+  // Pindah satu blok ke atas/bawah. Menyeret sudah bisa, tapi membidik titik
+  // jatuh di antara dua paragraf itu pekerjaan presisi — dua tombol ini
+  // memindahkannya satu langkah pasti, dan itu yang dipakai kalau medianya
+  // cuma perlu naik sedikit.
+  function move(dir: -1 | 1) {
+    const pos = getPos();
+    if (typeof pos !== "number") return;
+    const { state } = editor;
+    const $pos = state.doc.resolve(pos);
+    const index = $pos.index();
+    const parent = $pos.parent;
+    const target = index + dir;
+    // Sudah di ujung dokumen: tidak ada tetangga untuk ditukar.
+    if (target < 0 || target >= parent.childCount) return;
+
+    const self = parent.child(index);
+    const neighbour = parent.child(target);
+    // Hapus node ini lalu sisipkan di seberang tetangganya. Dihitung dari
+    // ukuran tetangga, bukan dari posisi mentah: setelah penghapusan, posisi
+    // di belakangnya sudah bergeser sebesar node yang dibuang.
+    const insertAt = dir === -1 ? pos - neighbour.nodeSize : pos + neighbour.nodeSize;
+    const tr = state.tr.delete(pos, pos + self.nodeSize).insert(insertAt, self);
+    // Seleksi ikut pindah supaya toolbarnya tetap terbuka di tempat barunya —
+    // kalau tidak, guru harus mengklik ulang medianya tiap satu langkah.
+    tr.setSelection(NodeSelection.create(tr.doc, insertAt));
+    editor.view.dispatch(tr.scrollIntoView());
+  }
+
+  const pos = getPos();
+  const index = typeof pos === "number" ? editor.state.doc.resolve(pos).index() : -1;
+  const siblings =
+    typeof pos === "number" ? editor.state.doc.resolve(pos).parent.childCount : 0;
+
   return (
     // as="div": media adalah blok sendiri, bukan inline di tengah kalimat.
     // Perataannya butuh elemen blok dengan lebar terbatas, dan lebar itulah yang
@@ -117,37 +158,48 @@ function MediaView({ node, updateAttributes, deleteNode, selected }: NodeViewPro
         }`}
         style={{ width: isFloat(current) ? "100%" : width ?? "100%" }}
       >
-        {node.type.name === "image" && (
-          // eslint-disable-next-line @next/next/no-img-element -- URL eksternal guru, bukan aset lokal
-          <img
-            src={src}
-            alt={alt ?? ""}
-            draggable={false}
-            className="rounded-xl w-full h-auto block"
-          />
-        )}
-        {node.type.name === "video" && (
-          <video
-            src={src}
-            controls
-            playsInline
-            preload="metadata"
-            className="rounded-xl w-full h-auto block bg-black"
-          />
-        )}
-        {node.type.name === "youtube" && (
-          <div className="aspect-video rounded-xl overflow-hidden bg-black">
-            {/* pointer-events-none: selama di editor, klik harus menyeleksi
-                node-nya, bukan masuk ke pemutar YouTube. Tanpa ini iframe
-                menelan setiap klik dan videonya tidak bisa dihapus maupun
-                dipindah — persis keluhan atas extension bawaan. */}
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${youtubeId(src) ?? ""}`}
-              title="Video YouTube"
-              className="w-full h-full pointer-events-none"
+        {/* data-drag-handle menandai area yang memulai drag-pindah: TipTap
+            memeriksa `target.closest("[data-drag-handle]")` di mousedown
+            (stopEvent, @tiptap/core). Tandanya di medianya saja — bukan di
+            kotak luar — supaya handle resize dan toolbar di pojok tetap
+            bekerja seperti biasa, bukan ikut menyeret node.
+            cursor-grab: tanpa ini tidak ada apa pun di layar yang memberi tahu
+            bahwa medianya bisa diseret. */}
+        <div data-drag-handle className="cursor-grab active:cursor-grabbing">
+          {node.type.name === "image" && (
+            // eslint-disable-next-line @next/next/no-img-element -- URL eksternal guru, bukan aset lokal
+            <img
+              src={src}
+              alt={alt ?? ""}
+              // draggable={false}: tanpa ini browser memulai drag gambar
+              // sendiri (seret berkas), bukan drag node ProseMirror.
+              draggable={false}
+              className="rounded-xl w-full h-auto block"
             />
-          </div>
-        )}
+          )}
+          {node.type.name === "video" && (
+            <video
+              src={src}
+              controls
+              playsInline
+              preload="metadata"
+              className="rounded-xl w-full h-auto block bg-black"
+            />
+          )}
+          {node.type.name === "youtube" && (
+            <div className="aspect-video rounded-xl overflow-hidden bg-black">
+              {/* pointer-events-none: selama di editor, klik harus menyeleksi
+                  node-nya, bukan masuk ke pemutar YouTube. Tanpa ini iframe
+                  menelan setiap klik dan videonya tidak bisa dihapus maupun
+                  dipindah — persis keluhan atas extension bawaan. */}
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${youtubeId(src) ?? ""}`}
+                title="Video YouTube"
+                className="w-full h-full pointer-events-none"
+              />
+            </div>
+          )}
+        </div>
 
         {selected && (
           <>
@@ -177,6 +229,36 @@ function MediaView({ node, updateAttributes, deleteNode, selected }: NodeViewPro
                   </span>
                 </button>
               ))}
+              <span className="w-px h-5 bg-border-subtle mx-0.5" />
+              {/* Naik/turun satu blok. Menyeret memindahkan ke mana saja;
+                  ini untuk langkah kecil yang susah dibidik. Mati di ujung
+                  dokumen — tidak ada tetangga untuk ditukar. */}
+              <button
+                type="button"
+                title="Pindah ke atas"
+                aria-label="Pindah ke atas"
+                disabled={index <= 0}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => move(-1)}
+                className="w-7 h-7 grid place-items-center rounded text-text-muted hover:text-text-primary disabled:opacity-30"
+              >
+                <span aria-hidden className="ms text-[16px]">
+                  arrow_upward
+                </span>
+              </button>
+              <button
+                type="button"
+                title="Pindah ke bawah"
+                aria-label="Pindah ke bawah"
+                disabled={index < 0 || index >= siblings - 1}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => move(1)}
+                className="w-7 h-7 grid place-items-center rounded text-text-muted hover:text-text-primary disabled:opacity-30"
+              >
+                <span aria-hidden className="ms text-[16px]">
+                  arrow_downward
+                </span>
+              </button>
               <span className="w-px h-5 bg-border-subtle mx-0.5" />
               <button
                 type="button"
@@ -235,13 +317,12 @@ const sizeAttributes = {
 };
 
 export const MediaImage = TiptapImage.extend({
-  // Image bawaan punya draggable: true di node spec (buat drag-pindah gambar
-  // di dalam dokumen) — itu bikin ProseMirror pasang native HTML5 drag di
-  // wrapper node view, yang membajak mousedown+move sebelum pointer event
-  // custom kita sempat jalan. stopPropagation di handler React tidak bisa
-  // menahan native drag itu karena deteksinya di layer browser, bukan JS.
-  // Pemindahan tetap bisa lewat potong-tempel dan tombol di toolbar node.
-  draggable: false,
+  // draggable: true + data-drag-handle di MediaView — lihat komentar di sana.
+  // Dulu ini false karena native HTML5 drag membajak mousedown di seluruh node
+  // view, termasuk handle resize. data-drag-handle menyelesaikan itu dengan
+  // membatasi area pemicunya ke medianya saja, jadi drag-pindah bisa hidup
+  // tanpa mengorbankan drag-ukur.
+  draggable: true,
   // Gambar bawaan inline; di sini tiap media berdiri sebagai blok sendiri
   // supaya perataannya punya arti.
   inline: false,
@@ -268,7 +349,8 @@ export const MediaVideo = Node.create({
   name: "video",
   group: "block",
   atom: true,
-  draggable: false,
+  // Sama dengan MediaImage: drag-pindah dibatasi ke area data-drag-handle.
+  draggable: true,
   addAttributes() {
     return { src: { default: null }, ...sizeAttributes };
   },
@@ -302,7 +384,8 @@ export const MediaYoutube = Node.create({
   name: "youtube",
   group: "block",
   atom: true,
-  draggable: false,
+  // Sama dengan MediaImage: drag-pindah dibatasi ke area data-drag-handle.
+  draggable: true,
   addAttributes() {
     return { src: { default: null }, ...sizeAttributes };
   },

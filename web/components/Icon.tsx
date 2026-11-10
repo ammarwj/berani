@@ -6,6 +6,8 @@ export const ICON_NAMES = [
   "add_photo_alternate",
   "archive",
   "arrow_back",
+  "arrow_downward",
+  "arrow_upward",
   "arrow_forward",
   "assignment",
   "attachment",
