@@ -108,7 +108,19 @@ export default function Home() {
         </section>
 
         <section>
-          <h2 className="t-headline-sm text-text-primary mb-space-sm">Eksplorasi fitur</h2>
+          {/* Panduan hanya muncul otomatis sekali (panduanSeen di lib/api.ts),
+              jadi tanpa pintu ini siswa yang sudah login kedua kali tidak punya
+              cara apa pun kembali ke pengenalan fitur. */}
+          <div className="flex items-center justify-between gap-space-sm mb-space-sm">
+            <h2 className="t-headline-sm text-text-primary">Eksplorasi fitur</h2>
+            <Link
+              href="/panduan"
+              className="t-label-md text-primary inline-flex items-center gap-1 shrink-0"
+            >
+              <Icon name="lightbulb" className="text-[16px]" />
+              Lihat panduan
+            </Link>
+          </div>
           <ol className="grid grid-cols-2 gap-space-sm">
             {PILLARS.map((p, i) => (
               <li key={p.href}>
