@@ -38,47 +38,114 @@ ok()  { printf '    \033[32m✓\033[0m %s\n' "$*"; }
 warn(){ printf '    \033[33m!\033[0m %s\n' "$*"; }
 
 # Mengembalikan seluruh konfigurasi ke kondisi sebelum skrip ini jalan.
+#
+# Backup mencerminkan path penuh (BACKUP/etc/nginx/…), bukan hanya
+# sites-available: vhost di server ini bisa berada di conf.d/, di direktori
+# panel hosting, atau di /opt — dan rollback yang hanya mengenal satu lokasi
+# akan diam-diam gagal persis saat ia paling dibutuhkan.
 rollback() {
   warn "Mengembalikan konfigurasi dari $BACKUP"
-  cp -a "$BACKUP/sites-available/." /etc/nginx/sites-available/ 2>/dev/null || true
-  rm -f "$SNIPPET"
+  [ -d "$BACKUP" ] || { echo "Backup $BACKUP tidak ada."; return 1; }
+  (cd "$BACKUP" && find . -type f -print0 | while IFS= read -r -d '' rel; do
+    cp -a "$rel" "/${rel#./}"
+  done)
+  # Snippet dibuat skrip ini, jadi dibuang — kecuali ia memang sudah ada
+  # sebelumnya dan ikut terbackup.
+  [ -f "$BACKUP$SNIPPET" ] || rm -f "$SNIPPET"
   nginx -t && systemctl reload nginx
   echo "Dikembalikan. Tidak ada perubahan yang tersisa."
 }
 
-say "0. Backup seluruh konfigurasi nginx"
-mkdir -p "$BACKUP"
-cp -a /etc/nginx/sites-available "$BACKUP/" 2>/dev/null || true
-cp -a /etc/nginx/conf.d "$BACKUP/" 2>/dev/null || true
-ok "Tersimpan di $BACKUP"
-echo "    Batalkan kapan saja dengan: bash $0 --rollback"
-
 if [ "$FILTER" = "--rollback" ]; then
-  # Backup terbaru, bukan yang baru saja dibuat di atas.
-  BACKUP="$(ls -1d /root/nginx-backup-* 2>/dev/null | sort | tail -2 | head -1)"
+  BACKUP="$(ls -1d /root/nginx-backup-* 2>/dev/null | sort | tail -1)"
   [ -n "$BACKUP" ] || { echo "Tidak ada backup."; exit 1; }
   rollback
   exit 0
 fi
+
+say "0. Backup seluruh konfigurasi nginx"
+mkdir -p "$BACKUP"
+# Seluruh /etc/nginx, plus file apa pun di luar itu yang ikut dimuat.
+tar -cf - /etc/nginx 2>/dev/null | (cd "$BACKUP" && tar -xf -) || true
+ok "Tersimpan di $BACKUP"
+echo "    Batalkan kapan saja dengan: bash $0 --rollback"
 
 say "1. Kondisi sekarang"
 nginx -v 2>&1 | sed 's/^/    /'
 openssl version | sed 's/^/    /'
 
 # Vhost yang punya sertifikat — hanya itu yang perlu disentuh.
-mapfile -t VHOSTS < <(grep -rl "ssl_certificate" /etc/nginx/sites-enabled/ 2>/dev/null | xargs -r -n1 readlink -f | sort -u)
+#
+# Daftar file datang dari `nginx -T`, bukan dari isi sites-enabled/: hanya nginx
+# sendiri yang tahu file mana yang benar-benar dimuat. Tata letak di luar
+# konvensi Debian — conf.d/, /etc/nginx/vhosts/, atau panel hosting yang
+# menaruhnya di /opt — tetap ketemu, dan file yang ADA di sites-available tapi
+# tidak di-symlink tidak ikut tersentuh.
+#
+# `while read`, bukan `mapfile`: mapfile hanya ada di bash 4+, dan skrip yang
+# tidak bisa diuji di luar server produksi adalah skrip yang pertama kali
+# dijalankan justru di tempat paling mahal untuk salah.
+ALL_CONF=()
+while IFS= read -r line; do
+  [ -n "$line" ] && ALL_CONF+=("$line")
+done < <(nginx -T 2>/dev/null | awk '/^# configuration file /{gsub(/:$/,"",$4); print $4}' | sort -u)
+
+VHOSTS=()
+for c in "${ALL_CONF[@]}"; do
+  [ -f "$c" ] || continue
+  # ssl_certificate_key, bukan ssl_certificate: yang kedua juga cocok dengan
+  # baris ssl_certificate_key itu sendiri, dan dengan snippet TLS bersama yang
+  # tidak punya server block untuk disisipi apa pun.
+  grep -qE '^[[:space:]]*ssl_certificate_key[[:space:]]' "$c" || continue
+  resolved="$(readlink -f "$c")"
+  # Dedup tanpa sort -u: satu file bisa di-include dua kali.
+  seen=0
+  for v in ${VHOSTS[@]+"${VHOSTS[@]}"}; do [ "$v" = "$resolved" ] && seen=1 && break; done
+  [ "$seen" -eq 0 ] && VHOSTS+=("$resolved")
+done
+
 if [ -n "$FILTER" ]; then
-  mapfile -t VHOSTS < <(printf '%s\n' "${VHOSTS[@]}" | grep -- "$FILTER" || true)
+  FILTERED=()
+  for v in ${VHOSTS[@]+"${VHOSTS[@]}"}; do
+    case "$v" in *"$FILTER"*) FILTERED+=("$v") ;; esac
+  done
+  VHOSTS=(${FILTERED[@]+"${FILTERED[@]}"})
 fi
-[ "${#VHOSTS[@]}" -gt 0 ] || { echo "Tidak ada vhost ber-SSL yang cocok."; exit 1; }
+
+if [ "${#VHOSTS[@]}" -eq 0 ]; then
+  echo "Tidak ada vhost ber-SSL yang cocok."
+  echo
+  echo "File konfigurasi yang nginx muat:"
+  printf '  %s\n' ${ALL_CONF[@]+"${ALL_CONF[@]}"}
+  echo
+  if [ -n "$FILTER" ]; then
+    echo "Filter '$FILTER' mungkin tidak cocok dengan nama file mana pun di atas."
+    echo "Coba tanpa filter: bash $0"
+  else
+    echo "Tidak satu pun memuat ssl_certificate_key — artinya HTTPS belum"
+    echo "dikonfigurasi lewat nginx di server ini. Jalankan certbot dulu:"
+    echo "    certbot --nginx -d berani.site -d api.berani.site"
+  fi
+  exit 1
+fi
 
 echo "    Vhost yang akan disentuh:"
 printf '      %s\n' "${VHOSTS[@]}"
 
+# Vhost di luar /etc/nginx (panel hosting, /opt) belum ikut tar di tahap 0.
+for f in "${VHOSTS[@]}"; do
+  case "$f" in
+    /etc/nginx/*) ;;
+    *) mkdir -p "$BACKUP$(dirname "$f")" && cp -a "$f" "$BACKUP$f"
+       warn "di luar /etc/nginx, ikut dibackup: $f" ;;
+  esac
+done
+
 # Domain yang dilayani, untuk verifikasi di akhir.
-mapfile -t DOMAINS < <(
-  awk '/server_name/ {for(i=2;i<=NF;i++){gsub(/;/,"",$i); if($i!="_") print $i}}' "${VHOSTS[@]}" | sort -u
-)
+DOMAINS=()
+while IFS= read -r d; do
+  [ -n "$d" ] && DOMAINS+=("$d")
+done < <(awk '/server_name/ {for(i=2;i<=NF;i++){gsub(/;/,"",$i); if($i!="_") print $i}}' "${VHOSTS[@]}" | sort -u)
 
 say "2. Snippet TLS bersama"
 # Satu file yang di-include semua vhost, bukan blok yang disalin berkali-kali:
