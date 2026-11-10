@@ -111,7 +111,9 @@ export default function RichTextEditor({
           // Media mengurus lebarnya sendiri di node view; di sini cukup
           // memastikan tidak ada yang meluber keluar kotak editor di layar
           // sempit.
-          "min-h-40 px-3.5 py-3 t-body text-text-primary focus:outline-none [&_h2]:t-title [&_h2]:text-text-primary [&_h2]:mt-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_p]:my-1.5 [&_li]:my-0.5 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold [&_img]:max-w-full [&_video]:max-w-full",
+          // after:clear-both menahan media mengambang di ujung dokumen supaya
+          // tidak meluber keluar kotak editor.
+          "min-h-40 px-3.5 py-3 t-body text-text-primary focus:outline-none after:content-[''] after:block after:clear-both [&_h2]:t-title [&_h2]:text-text-primary [&_h2]:mt-2 [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5 [&_p]:my-1.5 [&_li]:my-0.5 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold [&_img]:max-w-full [&_video]:max-w-full",
       },
     },
   });

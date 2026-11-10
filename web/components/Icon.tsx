@@ -25,6 +25,8 @@ export const ICON_NAMES = [
   "format_align_center",
   "format_align_left",
   "format_align_right",
+  "format_image_left",
+  "format_image_right",
   "forum",
   "key",
   "front_hand",

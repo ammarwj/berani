@@ -32,9 +32,15 @@ function Spans({ nodes }: { nodes: Inline[] }) {
 // max-w-full, bukan width tetap: di layar Android lebar 600px yang diatur guru
 // di laptop harus menyusut, bukan memaksa halaman menggeser ke samping.
 const ALIGN_CLASS: Record<Align, string> = {
-  left: "mr-auto",
-  center: "mx-auto",
-  right: "ml-auto",
+  left: "w-full mr-auto",
+  center: "w-full mx-auto",
+  right: "w-full ml-auto",
+  // Mengambang: media keluar dari aliran, blok sesudahnya — teks maupun media
+  // kedua — naik mengisi ruang di sampingnya. max-w-[48%] supaya dua media
+  // mengambang tetap muat bersebelahan walau lebar yang diatur guru lebih dari
+  // separuh kolom; itu juga yang menyusutkannya di layar Android.
+  "float-left": "float-left mr-3 mb-2 max-w-[48%]",
+  "float-right": "float-right ml-3 mb-2 max-w-[48%]",
 };
 
 function MediaBlock({
@@ -48,7 +54,7 @@ function MediaBlock({
 }) {
   return (
     <div
-      className={`w-full max-w-full ${ALIGN_CLASS[align ?? "left"]}`}
+      className={`max-w-full ${ALIGN_CLASS[align ?? "left"]}`}
       style={width ? { width } : undefined}
     >
       {children}
@@ -59,7 +65,11 @@ function MediaBlock({
 // Node terstruktur → elemen React. Tidak ada dangerouslySetInnerHTML di jalur ini.
 export default function Markdown({ source, className = "" }: { source: string; className?: string }) {
   return (
-    <div className={`flex flex-col gap-3 leading-relaxed ${className}`}>
+    // Aliran blok biasa, bukan `flex flex-col`: flex container membuang float,
+    // jadi media mengambang tidak akan pernah didampingi apa pun. Jarak antar
+    // blok yang dulu dari `gap-3` kini dari margin tiap blok, dan `clear-both`
+    // di ujung menahan float terakhir supaya tidak meluber ke bawah artikel.
+    <div className={`leading-relaxed [&>*]:my-3 ${className}`}>
       {parseMarkdown(source).map((b, i) => {
         if (b.t === "h") return <h2 key={i} className="t-title text-text-primary mt-2"><Spans nodes={b.children} /></h2>;
         if (b.t === "img")
@@ -115,6 +125,7 @@ export default function Markdown({ source, className = "" }: { source: string; c
           );
         return <p key={i}><Spans nodes={b.children} /></p>;
       })}
+      <div className="clear-both !my-0" />
     </div>
   );
 }

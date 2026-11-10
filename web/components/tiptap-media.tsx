@@ -16,16 +16,40 @@ import { youtubeId, type Align } from "@/lib/markdown";
 // Lebar minimum drag: di bawah ini media susah dipegang lagi buat dibesarkan.
 const MIN_WIDTH = 80;
 
+// Dua mode perataan yang berbeda sifatnya, jadi dua peta kelas.
+// Non-float: wrapper `flex`, kotaknya digeser dengan margin auto.
+// Float: wrapper TIDAK boleh flex — flex container membuang float sama sekali —
+// jadi wrappernya blok biasa dan float dipasang di wrappernya, bukan di kotak
+// dalam. Itu yang membuat blok sesudahnya (teks maupun gambar kedua) mengalir
+// di sisa ruang sampingnya.
+const isFloat = (a: Align) => a === "float-left" || a === "float-right";
+
 const ALIGN_CLASS: Record<Align, string> = {
   left: "mr-auto",
   center: "mx-auto",
   right: "ml-auto",
+  "float-left": "",
+  "float-right": "",
+};
+
+const WRAPPER_CLASS: Record<Align, string> = {
+  left: "my-2 flex",
+  center: "my-2 flex",
+  right: "my-2 flex",
+  // max-w-[48%]: dua gambar mengambang harus muat bersebelahan walau guru
+  // menyetel lebar masing-masing lebih besar dari separuh kolom.
+  "float-left": "float-left mr-3 mb-2 max-w-[48%]",
+  "float-right": "float-right ml-3 mb-2 max-w-[48%]",
 };
 
 const ALIGN_TOOLS: { value: Align; label: string; icon: string }[] = [
   { value: "left", label: "Rata kiri", icon: "format_align_left" },
   { value: "center", label: "Rata tengah", icon: "format_align_center" },
   { value: "right", label: "Rata kanan", icon: "format_align_right" },
+  // Mengambang: media keluar dari aliran, isi berikutnya naik ke sampingnya.
+  // Inilah jalan menaruh dua gambar bersebelahan.
+  { value: "float-left", label: "Mengambang kiri", icon: "format_image_left" },
+  { value: "float-right", label: "Mengambang kanan", icon: "format_image_right" },
 ];
 
 function MediaView({ node, updateAttributes, deleteNode, selected }: NodeViewProps) {
@@ -48,10 +72,17 @@ function MediaView({ node, updateAttributes, deleteNode, selected }: NodeViewPro
     if (!box) return;
     const startX = e.clientX;
     const startWidth = box.getBoundingClientRect().width;
-    const maxWidth = box.parentElement?.getBoundingClientRect().width ?? startWidth;
+    // Saat mengambang, induk box adalah wrapper yang ikut selebar medianya —
+    // mengukurnya akan mengunci lebar di angka sekarang. Yang membatasi justru
+    // kolom editor, yaitu induk wrappernya.
+    const bound = isFloat(current)
+      ? box.parentElement?.parentElement
+      : box.parentElement;
+    const maxWidth = bound?.getBoundingClientRect().width ?? startWidth;
     // Rata kanan tumbuh ke kiri, rata tengah ke dua arah — tanpa ini menarik
     // handle ke kanan pada media rata kanan justru mengecilkannya.
-    const factor = current === "right" ? -1 : current === "center" ? 2 : 1;
+    const factor =
+      current === "right" || current === "float-right" ? -1 : current === "center" ? 2 : 1;
 
     function onMove(ev: PointerEvent) {
       const next = Math.min(
@@ -72,13 +103,19 @@ function MediaView({ node, updateAttributes, deleteNode, selected }: NodeViewPro
     // as="div": media adalah blok sendiri, bukan inline di tengah kalimat.
     // Perataannya butuh elemen blok dengan lebar terbatas, dan lebar itulah yang
     // di-drag guru.
-    <NodeViewWrapper className="my-2 flex">
+    <NodeViewWrapper
+      className={WRAPPER_CLASS[current]}
+      // Saat mengambang, lebar guru dipasang di wrapper: wrappernya yang
+      // di-float, jadi dialah yang harus selebar medianya — kalau tidak,
+      // floatnya selebar kolom dan tidak ada ruang tersisa di sampingnya.
+      style={isFloat(current) ? { width: width ?? 300 } : undefined}
+    >
       <div
         ref={boxRef}
         className={`relative max-w-full ${ALIGN_CLASS[current]} ${
           selected ? "outline-2 outline-offset-2 outline-primary-container rounded-xl" : ""
         }`}
-        style={{ width: width ?? "100%" }}
+        style={{ width: isFloat(current) ? "100%" : width ?? "100%" }}
       >
         {node.type.name === "image" && (
           // eslint-disable-next-line @next/next/no-img-element -- URL eksternal guru, bukan aset lokal

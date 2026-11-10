@@ -89,6 +89,13 @@ for (const md of [
   "[video](http://localhost:8080/uploads/materi/a.mp4 =480x center)",
   "[youtube](https://www.youtube.com/watch?v=abcdefghijk)",
   "[youtube](https://www.youtube.com/watch?v=abcdefghijk =480x right)",
+  // Mode mengambang — ini yang membuat dua media berdiri bersebelahan, jadi
+  // sufiksnya harus bertahan persis seperti perataan lain. Hilang satu di sini
+  // = tata letak materi berubah sendiri tiap kali guru menyimpan.
+  "![alt](https://contoh.id/x.png =300x float-left)",
+  "![alt](https://contoh.id/x.png float-right)",
+  "[video](http://localhost:8080/uploads/materi/a.mp4 =300x float-left)",
+  "[youtube](https://www.youtube.com/watch?v=abcdefghijk =300x float-right)",
 ]) {
   assert.equal(toMarkdown(toDoc(md)), md, `round-trip media mengubah: ${md}`);
 }

@@ -21,8 +21,14 @@ export type Block =
 
 // Perataan blok media. "left" tidak ditulis ke markdown (default), jadi materi
 // lama tetap tampil persis seperti sebelumnya.
-export type Align = "left" | "center" | "right";
-const ALIGNS = new Set(["left", "center", "right"]);
+//
+// float-left/float-right adalah mode mengambang: media keluar dari aliran blok
+// sehingga teks — dan media berikutnya — mengisi ruang di sampingnya. Itu
+// satu-satunya cara dua gambar berdiri bersebelahan tanpa menambah node
+// container baru ke skema. Nilai asing di markdown lama tetap jatuh ke
+// undefined lewat toAlign, jadi materi yang ada tidak terpengaruh.
+export type Align = "left" | "center" | "right" | "float-left" | "float-right";
+const ALIGNS = new Set(["left", "center", "right", "float-left", "float-right"]);
 const toAlign = (s: string | undefined): Align | undefined =>
   s && ALIGNS.has(s) ? (s as Align) : undefined;
 
@@ -39,15 +45,15 @@ const IMAGE_SCHEME = /^https?:\/\//i;
 // handle di editor — konvensi dipinjam dari kramdown/Marp. Grup ke-4 (`center`)
 // menyimpan perataannya. `\S+?` non-greedy supaya kedua suffix itu tidak ikut
 // ketelan ke dalam src.
-const IMAGE_LINE = /^!\[([^\]]*)\]\((\S+?)(?:\s+=(\d+)x)?(?:\s+(left|center|right))?\)$/;
+const IMAGE_LINE = /^!\[([^\]]*)\]\((\S+?)(?:\s+=(\d+)x)?(?:\s+(left|center|right|float-left|float-right))?\)$/;
 // Bukan sintaks markdown standar (tidak ada video embed di markdown), tapi
 // satu-satunya jalan membuatnya adalah tombol toolbar, jadi bentuknya bebas
 // kita tentukan sendiri. Lebar & perataan ikut pola yang sama dengan gambar.
-const YOUTUBE_LINE = /^\[youtube\]\((\S+?)(?:\s+=(\d+)x)?(?:\s+(left|center|right))?\)$/;
+const YOUTUBE_LINE = /^\[youtube\]\((\S+?)(?:\s+=(\d+)x)?(?:\s+(left|center|right|float-left|float-right))?\)$/;
 // Video yang diunggah guru, diputar di halaman materi lewat <video> — bukan
 // embed. Dibedakan dari [youtube] karena elemennya beda: satu butuh kontrol
 // play/volume asli browser, satunya iframe pihak ketiga.
-const VIDEO_LINE = /^\[video\]\((\S+?)(?:\s+=(\d+)x)?(?:\s+(left|center|right))?\)$/;
+const VIDEO_LINE = /^\[video\]\((\S+?)(?:\s+=(\d+)x)?(?:\s+(left|center|right|float-left|float-right))?\)$/;
 const YOUTUBE_ID = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
 
 export function youtubeId(url: string): string | null {
