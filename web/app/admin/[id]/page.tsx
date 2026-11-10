@@ -43,7 +43,12 @@ type Detail = {
   reporter_email: string;
   ticket_code: string;
   attachments: Attachment[];
-  notes: { note: string; status_after: string; created_at: string }[];
+  notes: {
+    note: string;
+    status_after: string;
+    created_at: string;
+    visible_to_reporter?: boolean;
+  }[];
 };
 
 const STATUSES = ["diterima", "diproses", "ditindaklanjuti", "selesai"];
@@ -55,6 +60,10 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
   const [report, setReport] = useState<Detail | null>(null);
   const [status, setStatus] = useState("");
   const [note, setNote] = useState("");
+  // Default internal. Catatan tindak lanjut sering menyebut nama terlapor atau
+  // dugaan yang belum terbukti, dan yang sudah terkirim ke pelapor tidak bisa
+  // ditarik kembali — jadi membagikannya harus tindakan sadar, bukan lalai.
+  const [shareNote, setShareNote] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -83,9 +92,10 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
     try {
       await api(`/admin/reports/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status, note }),
+        body: JSON.stringify({ status, note, visible_to_reporter: shareNote }),
       });
       setNote("");
+      setShareNote(false);
       setSaved(true);
       load();
     } catch {
@@ -236,6 +246,33 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
               placeholder="Misal: sudah dihubungi wali kelas."
             />
           </Field>
+
+          {/* Pilihan per catatan, bukan setelan sekali untuk semua: satu laporan
+              biasanya punya catatan audit ("dugaan pelaku kelas 8B") dan pesan
+              untuk pelapor ("datang ke ruang BK hari Kamis") sekaligus. */}
+          <label
+            className={`flex items-start gap-space-sm rounded-xl border p-3 transition ${
+              shareNote ? "border-primary-container bg-ocean-subtle" : "border-border-subtle"
+            } ${note.trim() ? "cursor-pointer" : "opacity-50"}`}
+          >
+            <input
+              type="checkbox"
+              checked={shareNote}
+              disabled={!note.trim()}
+              onChange={(e) => setShareNote(e.target.checked)}
+              className="w-5 h-5 mt-0.5 shrink-0 accent-primary-container"
+            />
+            <span className="min-w-0">
+              <span className="t-label text-text-primary block">
+                Tampilkan catatan ini ke pelapor
+              </span>
+              <span className="t-body-sm text-text-muted block mt-0.5">
+                Muncul di halaman lacak tiket siswa. Pakai untuk pesan yang aman dibaca
+                pelapor — misal &ldquo;datang ke ruang BK hari Kamis&rdquo; — bukan dugaan
+                atau nama terlapor. Catatan yang sudah dibagikan tidak bisa ditarik kembali.
+              </span>
+            </span>
+          </label>
           {error && <Alert kind="error">{error}</Alert>}
           {saved && <Alert kind="success">Status laporan diperbarui.</Alert>}
           <Button disabled={saving} className="self-start">
@@ -252,8 +289,22 @@ export default function AdminDetailPage({ params }: PageProps<"/admin/[id]">) {
           {report.notes.map((n, i) => (
             <li key={i}>
               <Card>
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <StatusBadge status={n.status_after} />
+                <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <StatusBadge status={n.status_after} />
+                    {/* Guru harus bisa melihat sekilas mana yang sudah sampai ke
+                        siswa — tanpa penanda ini, satu-satunya cara tahu adalah
+                        membuka halaman lacak tiket dengan kodenya. */}
+                    <span
+                      className={`t-label-sm uppercase px-2 py-0.5 rounded-full ${
+                        n.visible_to_reporter
+                          ? "bg-ocean-subtle text-primary"
+                          : "bg-surface-container-low text-text-muted"
+                      }`}
+                    >
+                      {n.visible_to_reporter ? "Terlihat pelapor" : "Internal"}
+                    </span>
+                  </div>
                   <span className="text-xs text-text-text-muted">
                     {new Date(n.created_at).toLocaleString("id-ID", {
                       day: "numeric",

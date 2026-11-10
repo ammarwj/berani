@@ -155,9 +155,20 @@ export default function LaporPage() {
             Kamu sudah berani berbuat hal yang tepat 🤗
           </p>
 
+          {/* Kode tiket tetap disarankan disalin, tapi lupa menyalinnya bukan
+              lagi kehilangan permanen — laporan tersimpan di akun pelapor. */}
+          <p className="t-body-sm text-text-muted mt-space-sm">
+            Simpan kodenya kalau bisa. Kalau lupa, kodenya tetap tersimpan di{" "}
+            <Link href="/lapor/status" className="text-primary underline underline-offset-2">
+              Lacak Laporan
+            </Link>{" "}
+            selama kamu masuk dengan akun ini.
+          </p>
+
           {anonymous && (
-            <p className="t-body-sm text-text-muted mt-space-sm">
-              Laporan ini anonim — namamu tidak terlihat siswa lain.
+            <p className="t-body-sm text-text-muted mt-space-xs">
+              Laporan ini anonim — namamu tidak terlihat siswa lain, tetapi Guru BK tetap
+              dapat melihatnya untuk menindaklanjuti.
             </p>
           )}
           {attachNote && (
@@ -188,22 +199,23 @@ export default function LaporPage() {
   return (
     <main className="flex-1 w-full pt-16 pb-28">
       <div className="max-w-2xl mx-auto w-full px-margin flex flex-col gap-space-md pt-space-lg">
-        <section className="flex gap-space-sm bg-ocean-subtle rounded-2xl p-space-md">
-          <span className="w-10 h-10 rounded-xl bg-surface-card text-primary-container grid place-items-center shrink-0">
+        {/* "Enkripsi" diganti "Terlindungi": yang perlu siswa pahami adalah
+            siapa yang bisa membaca laporannya, bukan teknologinya. Badge pindah
+            ke baris sendiri supaya judulnya tidak terpotong di layar sempit. */}
+        <section className="flex gap-space-sm bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card">
+          <span className="w-10 h-10 rounded-xl bg-ocean-subtle text-primary-container grid place-items-center shrink-0">
             <Icon name="verified_user" filled className="text-[22px]" />
           </span>
           <div>
-            <div className="flex items-center gap-space-xs flex-wrap">
-              <h1 className="t-headline-sm text-text-primary">
-                Kanal rahasia &amp; aman
-              </h1>
-              <span className="t-label-sm uppercase px-2 py-0.5 rounded-full bg-support-teal-subtle text-support-teal">
-                Enkripsi
-              </span>
-            </div>
-            <p className="t-body text-text-muted mt-1">
-              Laporanmu dijaga kerahasiaannya dan hanya dibaca guru pendamping.
-              Tarik napas perlahan, kamu tidak sendirian.
+            <h1 className="t-headline-sm text-text-primary">
+              Kanal rahasia dan aman
+            </h1>
+            <span className="t-label-sm uppercase px-2 py-0.5 rounded-full bg-ocean-subtle text-primary inline-block mt-1">
+              Terlindungi
+            </span>
+            <p className="t-body text-text-muted mt-space-sm">
+              Laporanmu dijaga kerahasiaannya dan hanya dapat diakses oleh Guru BK yang
+              berwenang untuk menindaklanjuti laporan. Kamu tidak sendirian.
             </p>
           </div>
         </section>
@@ -226,10 +238,23 @@ export default function LaporPage() {
                 />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="t-label text-text-primary">Mode laporan anonim</p>
-                <p className="t-body-sm text-text-muted">
+                <div className="flex items-center gap-space-xs flex-wrap">
+                  <p className="t-label text-text-primary">Mode laporan anonim</p>
+                  {/* Status tertulis, bukan cuma posisi toggle: "AKTIF" tidak
+                      bisa salah dibaca, sementara knop di kanan bisa. */}
+                  <span
+                    className={`t-label-sm uppercase px-2 py-0.5 rounded-full ${
+                      anonymous
+                        ? "bg-mint-subtle text-secondary"
+                        : "bg-surface-container-low text-text-muted"
+                    }`}
+                  >
+                    {anonymous ? "Aktif" : "Nonaktif"}
+                  </span>
+                </div>
+                <p className="t-body-sm text-text-muted mt-0.5">
                   {anonymous
-                    ? "Namamu disembunyikan — tidak ada siswa lain yang bisa melihatnya."
+                    ? "Namamu disembunyikan dari siswa lain, tetapi tetap dapat dilihat oleh Guru BK."
                     : name
                       ? <>Laporan dikirim dengan nama <strong>{name}</strong> tertera seperti biasa.</>
                       : "Laporan dikirim dengan namamu tertera seperti biasa."}
@@ -253,14 +278,22 @@ export default function LaporPage() {
               </button>
             </div>
 
+            {/* Kontrak anonimitas (CLAUDE.md): "anonim" = tersembunyi dari
+                siswa lain, bukan dari Guru BK. Siswa harus membaca ini SEBELUM
+                menekan kirim — itu yang menentukan keputusannya soal keselamatan
+                dari pembalasan, jadi kalimatnya bukan hiasan. */}
             {anonymous && (
-              <p className="flex gap-space-xs t-body-sm text-primary bg-ocean-subtle rounded-xl px-3 py-2.5 mt-space-sm">
-                <Icon name="key" className="text-[18px] shrink-0" />
-                <span>
-                  Namamu <strong>tidak terlihat siswa lain</strong>
-                  {name && <> — kamu melapor sebagai <strong>{name}</strong>. Guru pendamping tetap bisa melihat nama ini untuk menindaklanjuti laporanmu</>}.
-                </span>
-              </p>
+              <div className="bg-ocean-subtle rounded-xl px-3 py-2.5 mt-space-sm">
+                <p className="flex items-center gap-space-xs t-label text-primary">
+                  <Icon name="key" className="text-[18px] shrink-0" />
+                  Perlu kamu ketahui
+                </p>
+                <p className="t-body-sm text-primary mt-1">
+                  Meskipun mode anonim diaktifkan, Guru BK tetap dapat melihat identitasmu
+                  {name && <> (<strong>{name}</strong>)</>} untuk membantu memeriksa dan
+                  menindaklanjuti laporan. Siswa lain tidak dapat melihat identitas pelapor.
+                </p>
+              </div>
             )}
           </section>
         )}

@@ -172,17 +172,24 @@ func (h *Handler) Attach(w http.ResponseWriter, r *http.Request) {
 
 // Status looks up a report by ticket code — no auth required, so anonymous
 // reporters can track progress without re-linking their identity.
+//
+// Ikut membawa catatan tindak lanjut yang DITANDAI terlihat pelapor — bukan
+// seluruh report_notes. Endpoint ini hanya butuh kode tiket, jadi apa pun yang
+// dikirim dari sini bisa dibaca siapa saja yang memegang kodenya; `WHERE
+// visible_to_reporter` adalah satu-satunya yang memisahkan pesan "datang ke
+// ruang BK hari Kamis" dari catatan audit yang menyebut nama terlapor.
 func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 	var (
+		reportID         string
 		status, category string
 		createdAt        time.Time
 	)
 	err := h.DB.QueryRow(r.Context(),
-		`SELECT r.status, r.category, r.created_at
+		`SELECT r.id, r.status, r.category, r.created_at
 		 FROM reports r JOIN report_tickets t ON t.report_id = r.id
 		 WHERE t.ticket_code = $1`,
 		r.PathValue("ticket"),
-	).Scan(&status, &category, &createdAt)
+	).Scan(&reportID, &status, &category, &createdAt)
 	if err == pgx.ErrNoRows {
 		http.Error(w, "tiket tidak ditemukan", http.StatusNotFound)
 		return
@@ -192,11 +199,42 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	notes, err := h.publicNotesFor(r, reportID)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	writeJSON(w, map[string]any{
 		"status":     status,
 		"category":   category,
 		"created_at": createdAt,
+		"notes":      notes,
 	})
+}
+
+// publicNotesFor hanya mengambil catatan yang guru BK tandai terlihat pelapor.
+// author_id sengaja tidak ikut: siswa cukup tahu pesannya datang dari guru
+// pendamping, dan nama guru di layar yang bisa dibuka siapa pun pemegang tiket
+// tidak menambah apa pun selain permukaan.
+func (h *Handler) publicNotesFor(r *http.Request, reportID string) ([]publicNote, error) {
+	rows, err := h.DB.Query(r.Context(),
+		`SELECT note, coalesce(status_after, ''), created_at FROM report_notes
+		 WHERE report_id = $1 AND visible_to_reporter ORDER BY created_at DESC`, reportID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []publicNote{}
+	for rows.Next() {
+		var n publicNote
+		if err := rows.Scan(&n.Note, &n.StatusAfter, &n.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, nil
 }
 
 // Mine lists every report the user submitted, anonim atau tidak — keduanya
@@ -352,6 +390,11 @@ func (h *Handler) AdminUpdate(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Status string `json:"status"`
 		Note   string `json:"note"`
+		// VisibleToReporter menentukan apakah catatan ini ikut tampil di
+		// halaman lacak tiket. Default false (field hilang = internal): catatan
+		// tindak lanjut sering menyebut nama terlapor atau dugaan yang belum
+		// terbukti, dan yang terkirim ke pelapor tidak bisa ditarik kembali.
+		VisibleToReporter bool `json:"visible_to_reporter"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "permintaan tidak valid", http.StatusBadRequest)
@@ -360,6 +403,11 @@ func (h *Handler) AdminUpdate(w http.ResponseWriter, r *http.Request) {
 	if !validStatuses[body.Status] {
 		http.Error(w, "status tidak valid", http.StatusBadRequest)
 		return
+	}
+	// Catatan kosong tidak punya apa pun untuk ditampilkan; menandainya terlihat
+	// hanya membuat baris hampa di halaman siswa.
+	if strings.TrimSpace(body.Note) == "" {
+		body.VisibleToReporter = false
 	}
 
 	id := r.PathValue("id")
@@ -374,8 +422,9 @@ func (h *Handler) AdminUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := h.DB.Exec(r.Context(),
-		`INSERT INTO report_notes (report_id, author_id, note, status_after) VALUES ($1, $2, $3, $4)`,
-		id, adminID, body.Note, body.Status,
+		`INSERT INTO report_notes (report_id, author_id, note, status_after, visible_to_reporter)
+		 VALUES ($1, $2, $3, $4, $5)`,
+		id, adminID, body.Note, body.Status, body.VisibleToReporter,
 	); err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -459,7 +508,21 @@ func (h *Handler) attachmentsFor(r *http.Request, reportID string) ([]attachment
 	return out, nil
 }
 
+// note adalah bentuk untuk guru pendamping: ikut membawa status visibilitas
+// supaya UI bisa menandai mana yang sudah sampai ke pelapor. Tanpa tag
+// `omitempty` — `false` harus terkirim apa adanya, kalau tidak UI tidak bisa
+// membedakan "internal" dari "field-nya tidak ada".
 type note struct {
+	Note              string    `json:"note"`
+	StatusAfter       string    `json:"status_after"`
+	CreatedAt         time.Time `json:"created_at"`
+	VisibleToReporter bool      `json:"visible_to_reporter"`
+}
+
+// publicNote adalah bentuk untuk pelapor. Tipe terpisah, bukan `note` dengan
+// field dikosongkan: yang membuat sebuah field tidak sampai ke endpoint publik
+// seharusnya ketiadaan field itu di tipenya, bukan kedisiplinan pemanggil.
+type publicNote struct {
 	Note        string    `json:"note"`
 	StatusAfter string    `json:"status_after"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -467,8 +530,8 @@ type note struct {
 
 func (h *Handler) notesFor(r *http.Request, reportID string) ([]note, error) {
 	rows, err := h.DB.Query(r.Context(),
-		`SELECT note, coalesce(status_after, ''), created_at FROM report_notes
-		 WHERE report_id = $1 ORDER BY created_at DESC`, reportID)
+		`SELECT note, coalesce(status_after, ''), created_at, visible_to_reporter
+		 FROM report_notes WHERE report_id = $1 ORDER BY created_at DESC`, reportID)
 	if err != nil {
 		return nil, err
 	}
@@ -477,7 +540,7 @@ func (h *Handler) notesFor(r *http.Request, reportID string) ([]note, error) {
 	out := []note{}
 	for rows.Next() {
 		var n note
-		if err := rows.Scan(&n.Note, &n.StatusAfter, &n.CreatedAt); err != nil {
+		if err := rows.Scan(&n.Note, &n.StatusAfter, &n.CreatedAt, &n.VisibleToReporter); err != nil {
 			return nil, err
 		}
 		out = append(out, n)
