@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api, saveSession, Session } from "@/lib/api";
+import { api, saveSession, Session, panduanSeen } from "@/lib/api";
 import { Field, Alert, inputClass, AuthShell, AuthHero, AuthCard, AuthButton, PasswordField } from "@/components/ui";
 import Icon from "@/components/Icon";
 
@@ -24,7 +24,10 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       saveSession(session);
-      router.push(session.role === "siswa" ? "/" : "/admin");
+      // Panduan hanya untuk siswa: menunya (Edukasi/Latihan/Refleksi/Lapor)
+      // tidak ada di nav guru/admin.
+      if (session.role !== "siswa") router.push("/admin");
+      else router.push(panduanSeen() ? "/" : "/panduan");
     } catch {
       setError("Email atau password salah.");
     } finally {

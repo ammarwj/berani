@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api, saveSession, Session, ApiError } from "@/lib/api";
+import { api, saveSession, Session, ApiError, panduanSeen } from "@/lib/api";
 import { Field, Alert, inputClass, AuthShell, AuthHero, AuthCard, AuthButton, PasswordField } from "@/components/ui";
 import Icon from "@/components/Icon";
 
@@ -29,7 +29,8 @@ export default function RegisterPage() {
         body: JSON.stringify({ name, email, password }),
       });
       saveSession(session);
-      router.push("/");
+      // Akun baru selalu siswa — pendaftar pertama kali justru yang paling butuh panduan.
+      router.push(panduanSeen() ? "/" : "/panduan");
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 409

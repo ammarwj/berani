@@ -23,6 +23,19 @@ export function getRole(): string | null {
 export const isAdmin = (r = getRole()) => r === "guru_admin" || r === "super_admin";
 export const isSuperAdmin = (r = getRole()) => r === "super_admin";
 
+// Panduan pengenalan: ditampilkan sekali per perangkat, bukan tiap login.
+// Flag sengaja tidak ikut dihapus clearSession() — kalau ikut, siswa yang
+// logout-login di jam yang sama melihat halaman yang sama berulang kali.
+const PANDUAN_KEY = "panduan_seen";
+
+export function panduanSeen(): boolean {
+  return typeof window !== "undefined" && localStorage.getItem(PANDUAN_KEY) === "1";
+}
+
+export function markPanduanSeen() {
+  localStorage.setItem(PANDUAN_KEY, "1");
+}
+
 export function isLoggedIn(): boolean {
   return typeof window !== "undefined" && !!localStorage.getItem("access_token");
 }

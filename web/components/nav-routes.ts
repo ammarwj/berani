@@ -3,6 +3,7 @@ import { isAdmin, isSuperAdmin } from "@/lib/api";
 // Halaman yang berdiri sendiri: splash & alur auth tampil penuh layar tanpa
 // header/nav, seperti di design/masuk_akun_berani dan splash_screen_berani.
 export const HIDE_SHELL = [
+  "/panduan",
   "/login",
   "/register",
   "/forgot-password",
