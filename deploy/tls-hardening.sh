@@ -292,51 +292,29 @@ ok "nginx -t lolos"
 systemctl reload nginx
 ok "nginx di-reload"
 
-say "5. Sertifikat RSA pendamping (dual-cert)"
-# Sertifikat ECDSA saja berarti chain ke ISRG Root X2, root yang belum ada di
-# trust store perangkat lama. RSA chain-nya ke ISRG Root X1 yang hampir semua
-# perangkat percaya. Keduanya dipasang bersama: browser modern memilih ECDSA
-# lewat negosiasi cipher, yang lama tetap kebagian RSA.
-if ! command -v certbot >/dev/null; then
-  warn "certbot tidak ada — lewati. Pasang dulu, lalu jalankan ulang skrip ini."
-else
-  for d in "${DOMAINS[@]}"; do
-    if [ -d "/etc/letsencrypt/live/${d}-rsa" ]; then
-      ok "$d: sertifikat RSA sudah ada"
-      continue
-    fi
-    echo "    Menerbitkan RSA untuk $d …"
-    if certbot certonly --nginx --non-interactive --agree-tos \
-         --key-type rsa --rsa-key-size 2048 \
-         --cert-name "${d}-rsa" -d "$d"; then
-      ok "$d: sertifikat RSA terbit"
-      # Pasangan ssl_certificate kedua di server block domain ini. ALL_VHOSTS,
-      # bukan VHOSTS: yang kedua sudah disaring di tahap 2, dan vhost yang
-      # dilewati di sana tetap butuh dual-cert.
-      for f in ${ALL_VHOSTS[@]+"${ALL_VHOSTS[@]}"}; do
-        grep -q "server_name.*${d}" "$f" || continue
-        grep -q "${d}-rsa" "$f" && continue
-        # Diikat ke ssl_certificate_key, sama seperti include snippet: itu
-        # satu-satunya jangkar yang pasti ada di tiap server block ber-SSL.
-        perl -0pi -e "s|^(\s*)(ssl_certificate_key[^;]*;)|\$1\$2\n\$1ssl_certificate /etc/letsencrypt/live/${d}-rsa/fullchain.pem;\n\$1ssl_certificate_key /etc/letsencrypt/live/${d}-rsa/privkey.pem;|m" "$f"
-        ok "$d: dual-cert dipasang di $(basename "$f")"
-      done
-    else
-      warn "$d: penerbitan RSA gagal — ECDSA yang lama tetap dipakai, situs tetap jalan"
-    fi
-  done
+say "5. Sertifikat RSA pendamping (dual-cert) — DIBUANG"
+cat <<'EOF'
+    Tahap ini sengaja tidak ada lagi. Versi sebelumnya menyisipkan sertifikat
+    RSA ke vhost mana pun yang server_name-nya MEMUAT nama domain itu — dan
+    "api.berani.site" memuat "berani.site", jadi cert api disisipkan ke server
+    block berani.site. nginx memilih sertifikat PERTAMA per tipe kunci, jadi
+    berani.site mulai menyajikan sertifikat api.berani.site dan browser
+    menolaknya: ERR_CERT_COMMON_NAME_INVALID.
 
-  if nginx -t; then
-    systemctl reload nginx
-    ok "nginx di-reload dengan dual-cert"
-  else
-    warn "Konfigurasi tidak sah setelah dual-cert — membatalkan."
-    rollback
-    exit 1
-  fi
-fi
+    Yang membuatnya berbahaya bukan bug-nya, tapi bahwa `nginx -t` LOLOS.
+    Konfigurasinya sah; yang salah adalah sertifikat mana yang disajikan ke
+    siapa — dan itu hanya terlihat dari luar, lewat permintaan HTTPS sungguhan.
+    Pengaman skrip ini bersandar pada `nginx -t`, jadi ia tidak akan menangkapnya.
+
+    Dual-cert tetap berguna untuk perangkat lama (chain ISRG Root X1), tapi ia
+    harus dipasang per server block secara manual, bukan ditebak dari
+    pencocokan nama. Langkahnya ada di README deploy/.
+EOF
 
 say "6. Verifikasi"
+# Verifikasi dari luar, bukan dari config: `nginx -t` bisa lolos sementara
+# browser menolak situsnya.
+BROKEN=0
 for d in "${DOMAINS[@]}"; do
   echo "    --- $d ---"
   printf '      ALPN      : '
@@ -348,9 +326,38 @@ for d in "${DOMAINS[@]}"; do
   else
     echo "BELUM (butuh 1-2 menit setelah reload, cek lagi)"
   fi
+  # Nama di sertifikat yang BENAR-BENAR disajikan. `nginx -t` tidak memeriksa
+  # ini: config yang sah tetap bisa menyajikan sertifikat domain lain, dan
+  # browser menolaknya meski server sehat. Ini satu-satunya cek yang menangkap
+  # kelas kesalahan itu, jadi ia harus ada meski terlihat berlebihan.
+  printf '      Cert utk  : '
+  CERT_NAMES="$(echo | openssl s_client -connect "$d:443" -servername "$d" 2>/dev/null \
+    | openssl x509 -noout -ext subjectAltName 2>/dev/null | tr ',' '\n' | sed 's/.*DNS://' | tr -d ' ' | grep -v '^$' | tr '\n' ' ')"
+  if [ -z "$CERT_NAMES" ]; then
+    echo "? (tidak bisa dibaca)"
+  elif printf '%s' " $CERT_NAMES" | grep -q " $d "; then
+    echo "$CERT_NAMES"
+  else
+    echo "SALAH -> $CERT_NAMES"
+    warn "$d menyajikan sertifikat domain lain. Browser akan menolaknya."
+    BROKEN=$((BROKEN + 1))
+  fi
+
   printf '      HTTP      : '
-  curl -sS -o /dev/null -w '%{http_code} (HTTP/%{http_version})\n' --max-time 10 "https://$d/" || echo gagal
+  if curl -sS -o /dev/null -w '%{http_code} (HTTP/%{http_version})\n' --max-time 10 "https://$d/" 2>/dev/null; then
+    :
+  else
+    echo "GAGAL"
+    BROKEN=$((BROKEN + 1))
+  fi
 done
+
+if [ "${BROKEN:-0}" -gt 0 ]; then
+  echo
+  warn "$BROKEN pemeriksaan GAGAL — situs di atas tidak bisa dibuka browser."
+  warn "Batalkan sekarang:  bash $0 --rollback"
+  exit 1
+fi
 
 cat <<EOF
 
