@@ -19,10 +19,15 @@ const MOOD_EMOJI: Record<string, string> = {
   sedih: "😢",
 };
 
+// Urutannya sengaja sama dengan FEATURES di /panduan: kedua halaman kini
+// menomori fitur yang sama, dan nomor 2 yang berarti "Latihan" di satu layar
+// lalu "Refleksi" di layar lain membuat penomorannya kehilangan gunanya.
+// Nomornya penanda urutan pengenalan, bukan prasyarat — tiap fitur tetap
+// berdiri sendiri dan boleh dimasuki dari mana saja.
 const PILLARS = [
   { href: "/edukasi", icon: "menu_book", label: "Edukasi", desc: "Modul & kuis interaktif", tint: "bg-ocean-subtle text-primary-container" },
-  { href: "/refleksi", icon: "mood", label: "Refleksi", desc: "Jurnal privat & emosi", tint: "bg-mint-subtle text-secondary" },
   { href: "/latihan", icon: "psychology", label: "Latihan", desc: "Simulasi respon asertif", tint: "bg-amber-subtle text-tertiary" },
+  { href: "/refleksi", icon: "mood", label: "Refleksi", desc: "Jurnal privat & emosi", tint: "bg-mint-subtle text-secondary" },
   { href: "/lapor", icon: "shield_person", label: "Lapor Aman", desc: "Kanal rahasia", tint: "bg-support-teal-subtle text-support-teal" },
 ];
 
@@ -104,21 +109,28 @@ export default function Home() {
 
         <section>
           <h2 className="t-headline-sm text-text-primary mb-space-sm">Eksplorasi fitur</h2>
-          <div className="grid grid-cols-2 gap-space-sm">
-            {PILLARS.map((p) => (
-              <Link
-                key={p.href}
-                href={p.href}
-                className="bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card flex flex-col gap-space-xs hover:border-primary-container transition"
-              >
-                <span className={`w-10 h-10 rounded-xl grid place-items-center ${p.tint}`}>
-                  <Icon name={p.icon} className="text-[22px]" />
-                </span>
-                <span className="t-title text-text-primary">{p.label}</span>
-                <span className="t-body-sm text-text-muted">{p.desc}</span>
-              </Link>
+          <ol className="grid grid-cols-2 gap-space-sm">
+            {PILLARS.map((p, i) => (
+              <li key={p.href}>
+                <Link
+                  href={p.href}
+                  className="h-full bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card flex flex-col gap-space-xs hover:border-primary-container transition"
+                >
+                  <span className={`w-10 h-10 rounded-xl grid place-items-center ${p.tint}`}>
+                    <Icon name={p.icon} className="text-[22px]" />
+                  </span>
+                  {/* Nomor di judul, sama seperti /panduan — badge netral di
+                      pojok kartu praktis tak terlihat. aria-hidden karena <ol>
+                      sudah menyampaikan urutannya ke pembaca layar. */}
+                  <span className="t-title text-text-primary">
+                    <span aria-hidden>{i + 1}. </span>
+                    {p.label}
+                  </span>
+                  <span className="t-body-sm text-text-muted">{p.desc}</span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ol>
         </section>
 
         {(edu || train) && (
