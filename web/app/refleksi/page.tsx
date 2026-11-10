@@ -204,6 +204,124 @@ function CalmCard({
   );
 }
 
+// Tren mood & riwayat dipakai di dua layar: bawah form tulis-baru dan layar
+// akhir flow. Satu komponen, bukan dua salinan JSX — paginasi dan dialog hapus
+// di dalamnya terlalu banyak untuk disalin.
+function MoodTrend({ entries }: { entries: Entry[] }) {
+  const recent = entries.slice(0, 14).reverse();
+  if (recent.length < 2) return null;
+  return (
+    <section className="bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card">
+      <h2 className="t-label text-text-primary mb-space-sm">Suasana hatimu belakangan ini</h2>
+      <ol className="flex gap-1 items-end overflow-x-auto pb-1">
+        {recent.map((e) => (
+          <li key={e.id} className="flex flex-col items-center shrink-0 w-9">
+            <span className="text-xl" title={e.mood}>{moodInfo(e.mood)?.emoji ?? "🙂"}</span>
+            <span className="t-label-sm text-text-muted">{new Date(e.created_at).getDate()}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function HistorySection({
+  entries,
+  page,
+  setPage,
+  onRemove,
+}: {
+  entries: Entry[];
+  page: number;
+  setPage: (f: (p: number) => number) => void;
+  onRemove: (id: string) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(entries.length / HISTORY_PAGE_SIZE));
+  const current = Math.min(page, totalPages);
+  const paged = entries.slice((current - 1) * HISTORY_PAGE_SIZE, current * HISTORY_PAGE_SIZE);
+
+  return (
+    <section>
+      <h2 className="t-headline-sm text-text-primary mb-space-sm">Riwayat catatanmu</h2>
+      {entries.length === 0 ? (
+        <Empty>Belum ada refleksi. Mulai tulis yang pertama.</Empty>
+      ) : (
+        <ul className="flex flex-col gap-space-sm">
+          {paged.map((e) => (
+            <li key={e.id} className="bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card">
+              <div className="flex items-start justify-between gap-space-sm">
+                <div className="min-w-0">
+                  <p className="t-label-md text-text-muted">
+                    {new Date(e.created_at).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                    {" • "}
+                    <span aria-hidden>{moodInfo(e.mood)?.emoji ?? "🙂"}</span> {e.mood}
+                  </p>
+                  {e.prompt && <p className="t-body-sm text-text-muted italic mt-0.5">{e.prompt}</p>}
+                  <p className="t-body text-text-primary mt-space-xs whitespace-pre-line wrap-break-word">
+                    {e.content}
+                  </p>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      aria-label="Hapus refleksi"
+                      className="text-text-muted hover:text-danger-rose shrink-0 w-9 h-9 grid place-items-center rounded-lg"
+                    >
+                      <Icon name="close" className="text-[20px]" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Hapus catatan ini?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tindakan ini tidak bisa dibatalkan. Catatan akan hilang permanen.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onRemove(e.id)}>Hapus</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-space-sm mt-space-md">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={current === 1}
+            className="flex items-center gap-1 t-label-md text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Icon name="arrow_back" className="text-[16px]" />
+            Sebelumnya
+          </button>
+          <span className="t-body-sm text-text-muted">
+            Halaman {current} dari {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={current === totalPages}
+            className="flex items-center gap-1 t-label-md text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Berikutnya
+            <Icon name="arrow_forward" className="text-[16px]" />
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function RefleksiPage() {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [step, setStep] = useState<Step>("mood");
@@ -286,7 +404,7 @@ export default function RefleksiPage() {
     const selected = moodInfo(mood);
     return (
       <main className="flex-1 w-full pt-16 pb-24">
-        <div className="max-w-2xl mx-auto w-full px-margin pt-space-lg">
+        <div className="max-w-2xl mx-auto w-full px-margin pt-space-lg flex flex-col gap-space-md">
           <PageHeader
             icon="quiz"
             title="Ruang Refleksi 🌿"
@@ -343,6 +461,18 @@ export default function RefleksiPage() {
               </button>
             </form>
           </Card>
+
+          {/* Riwayat tampil langsung di sini, bukan hanya di ujung flow:
+              membaca catatan lama tidak boleh menuntut menulis catatan baru
+              dulu. Letaknya di bawah form — yang datang untuk menulis tetap
+              bertemu kolomnya lebih dulu. */}
+          <MoodTrend entries={entries} />
+          <HistorySection
+            entries={entries}
+            page={historyPage}
+            setPage={setHistoryPage}
+            onRemove={remove}
+          />
         </div>
       </main>
     );
@@ -587,14 +717,6 @@ export default function RefleksiPage() {
   }
 
   // step === "history"
-  const recent = entries.slice(0, 14).reverse();
-  const totalHistoryPages = Math.max(1, Math.ceil(entries.length / HISTORY_PAGE_SIZE));
-  const currentHistoryPage = Math.min(historyPage, totalHistoryPages);
-  const pagedEntries = entries.slice(
-    (currentHistoryPage - 1) * HISTORY_PAGE_SIZE,
-    currentHistoryPage * HISTORY_PAGE_SIZE,
-  );
-
   return (
     <main className="flex-1 w-full pt-16 pb-24">
       <div className="max-w-2xl mx-auto w-full px-margin flex flex-col gap-space-md pt-space-lg">
@@ -626,98 +748,13 @@ export default function RefleksiPage() {
           </Alert>
         )}
 
-        {recent.length > 1 && (
-          <section className="bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card">
-            <h2 className="t-label text-text-primary mb-space-sm">Suasana hatimu belakangan ini</h2>
-            <ol className="flex gap-1 items-end overflow-x-auto pb-1">
-              {recent.map((e) => (
-                <li key={e.id} className="flex flex-col items-center shrink-0 w-9">
-                  <span className="text-xl" title={e.mood}>{moodInfo(e.mood)?.emoji ?? "🙂"}</span>
-                  <span className="t-label-sm text-text-muted">{new Date(e.created_at).getDate()}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-
-        <section>
-          <h2 className="t-headline-sm text-text-primary mb-space-sm">Riwayat catatanmu</h2>
-          {entries.length === 0 ? (
-            <Empty>Belum ada refleksi. Mulai tulis yang pertama.</Empty>
-          ) : (
-            <ul className="flex flex-col gap-space-sm">
-              {pagedEntries.map((e) => (
-                <li key={e.id} className="bg-surface-card border border-border-subtle rounded-2xl p-space-md e-card">
-                  <div className="flex items-start justify-between gap-space-sm">
-                    <div className="min-w-0">
-                      <p className="t-label-md text-text-muted">
-                        {new Date(e.created_at).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                        {" • "}
-                        <span aria-hidden>{moodInfo(e.mood)?.emoji ?? "🙂"}</span> {e.mood}
-                      </p>
-                      {e.prompt && <p className="t-body-sm text-text-muted italic mt-0.5">{e.prompt}</p>}
-                      <p className="t-body text-text-primary mt-space-xs whitespace-pre-line wrap-break-word">
-                        {e.content}
-                      </p>
-                    </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <button
-                          aria-label="Hapus refleksi"
-                          className="text-text-muted hover:text-danger-rose shrink-0 w-9 h-9 grid place-items-center rounded-lg"
-                        >
-                          <Icon name="close" className="text-[20px]" />
-                        </button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Hapus catatan ini?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tindakan ini tidak bisa dibatalkan. Catatan akan hilang permanen.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => remove(e.id)}>Hapus</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {totalHistoryPages > 1 && (
-            <div className="flex items-center justify-between gap-space-sm mt-space-md">
-              <button
-                type="button"
-                onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
-                disabled={currentHistoryPage === 1}
-                className="flex items-center gap-1 t-label-md text-primary disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Icon name="arrow_back" className="text-[16px]" />
-                Sebelumnya
-              </button>
-              <span className="t-body-sm text-text-muted">
-                Halaman {currentHistoryPage} dari {totalHistoryPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages, p + 1))}
-                disabled={currentHistoryPage === totalHistoryPages}
-                className="flex items-center gap-1 t-label-md text-primary disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Berikutnya
-                <Icon name="arrow_forward" className="text-[16px]" />
-              </button>
-            </div>
-          )}
-        </section>
+        <MoodTrend entries={entries} />
+        <HistorySection
+          entries={entries}
+          page={historyPage}
+          setPage={setHistoryPage}
+          onRemove={remove}
+        />
       </div>
     </main>
   );
